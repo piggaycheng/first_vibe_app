@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   AppBar,
   Box,
@@ -12,14 +12,19 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Container,
   CssBaseline,
-  styled
+  styled,
+  Paper
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import InfoIcon from '@mui/icons-material/Info';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
+import AddIcon from '@mui/icons-material/Add';
+
+// 引入 Gridstack 及其樣式
+import { GridStack } from 'gridstack';
+import 'gridstack/dist/gridstack.min.css';
 
 const drawerWidth = 240;
 
@@ -44,16 +49,42 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
 
 function App() {
   const [open, setOpen] = useState(true);
+  const gridRef = useRef(null); // 用於保存 GridStack 實例
 
   const handleDrawerToggle = () => {
     setOpen(!open);
+  };
+
+  // 初始化 GridStack
+  useEffect(() => {
+    if (!gridRef.current) {
+      gridRef.current = GridStack.init({
+        cellHeight: 100,
+        margin: 5,
+        float: true, // 允許懸浮（不自動向上緊縮），根據需求可改為 false
+      }, '.grid-stack');
+      
+      // 添加一些預設的小工具 (Widgets)
+      const widgets = [
+        { x: 0, y: 0, w: 4, h: 2, content: 'Widget 1' },
+        { x: 4, y: 0, w: 4, h: 4, content: 'Widget 2' },
+        { x: 8, y: 0, w: 2, h: 2, content: 'Widget 3' },
+      ];
+      
+      gridRef.current.load(widgets);
+    }
+  }, []); // 空依賴陣列確保只初始化一次
+
+  const addWidget = () => {
+    if (gridRef.current) {
+      gridRef.current.addWidget({ w: 3, h: 2, content: 'New Widget' });
+    }
   };
 
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       
-      {/* Navbar (AppBar) - 固定在最上方，zIndex 最高 */}
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
@@ -66,13 +97,14 @@ function App() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            First Vibe App
+            Dashboard with Gridstack.js
           </Typography>
-          <Button color="inherit">Login</Button>
+          <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget}>
+            Add Widget
+          </Button>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer (Sidebar) - 頂部剛好在 Navbar 下方 */}
       <Drawer
         sx={{
           width: drawerWidth,
@@ -80,20 +112,17 @@ function App() {
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
-            top: '64px', // Navbar 的標準高度
+            top: '64px',
             height: 'calc(100% - 64px)',
           },
         }}
         variant="persistent"
         anchor="left"
         open={open}
-        ModalProps={{
-          keepMounted: true, // 提升行動端效能
-        }}
-        hideBackdrop={true} // 移除背景遮罩
+        hideBackdrop={true}
       >
         <List>
-          {['Home', 'About', 'Contact'].map((text, index) => (
+          {['Dashboard', 'Settings', 'Analytics'].map((text, index) => (
             <ListItem key={text} disablePadding>
               <ListItemButton>
                 <ListItemIcon>
@@ -106,27 +135,13 @@ function App() {
         </List>
       </Drawer>
 
-      {/* Main Content Area - 隨 Drawer 開關擠壓內容 */}
       <Main open={open}>
-        <Toolbar /> {/* 佔位符避開 Navbar */}
-        <Container maxWidth="lg">
-          <Box sx={{ my: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              Clipped & Persistent Layout
-            </Typography>
-            <Typography variant="body1" paragraph>
-              這是一個進階佈局：
-            </Typography>
-            <Typography variant="body1" component="div">
-              <ul>
-                <li><strong>Navbar:</strong> 始終在最頂端。</li>
-                <li><strong>Drawer:</strong> 頂部剛好頂到 Navbar 底部。</li>
-                <li><strong>No Backdrop:</strong> 開啟時不會有灰色遮罩，您可以同時與頁面內容互動。</li>
-                <li><strong>Push Content:</strong> 側邊欄開啟時會將主內容向右推。</li>
-              </ul>
-            </Typography>
-          </Box>
-        </Container>
+        <Toolbar /> {/* Spacer for Navbar */}
+        
+        {/* Gridstack Container */}
+        <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
+           <div className="grid-stack"></div>
+        </Box>
       </Main>
     </Box>
   );
