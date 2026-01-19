@@ -14,13 +14,13 @@ import {
   ListItemText,
   CssBaseline,
   styled,
-  Paper
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import InfoIcon from '@mui/icons-material/Info';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
+import LayersIcon from '@mui/icons-material/Layers';
 
 // 引入 Gridstack 及其樣式
 import { GridStack } from 'gridstack';
@@ -49,35 +49,66 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
 
 function App() {
   const [open, setOpen] = useState(true);
-  const gridRef = useRef(null); // 用於保存 GridStack 實例
+  const gridRef = useRef(null);
 
   const handleDrawerToggle = () => {
     setOpen(!open);
   };
 
-  // 初始化 GridStack
   useEffect(() => {
+    // 初始化 GridStack
+    // Gridstack 會自動尋找並初始化所有 nested grids，只要它們有正確的 class 結構
     if (!gridRef.current) {
       gridRef.current = GridStack.init({
         cellHeight: 100,
         margin: 5,
-        float: true, // 允許懸浮（不自動向上緊縮），根據需求可改為 false
-      }, '.grid-stack');
-      
-      // 添加一些預設的小工具 (Widgets)
+        minRow: 1, // 確保至少有一行
+        acceptWidgets: true, // 允許接受拖入的 widget
+        dragIn: '.new-widget', // 如果有外部拖入的需求
+        subGridOpts: {
+           cellHeight: 80, // sub-grid 的高度可以不同
+           margin: 5,
+           acceptWidgets: true // sub-grid 也接受 widgets
+        }
+      }, '.grid-stack-root'); // 指定一個 root class
+
+      // 載入預設的巢狀結構
       const widgets = [
-        { x: 0, y: 0, w: 4, h: 2, content: 'Widget 1' },
-        { x: 4, y: 0, w: 4, h: 4, content: 'Widget 2' },
-        { x: 8, y: 0, w: 2, h: 2, content: 'Widget 3' },
+        { x: 0, y: 0, w: 4, h: 4, content: 'Regular Widget' },
+        { 
+          x: 4, y: 0, w: 8, h: 6, 
+          content: 'Container Widget (Drop items here)',
+          subGridOpts: {
+            children: [
+              { x: 0, y: 0, w: 3, h: 2, content: 'Nested 1' },
+              { x: 3, y: 0, w: 3, h: 2, content: 'Nested 2' },
+              { x: 0, y: 2, w: 6, h: 2, content: 'Nested 3' }
+            ]
+          }
+        },
       ];
       
       gridRef.current.load(widgets);
     }
-  }, []); // 空依賴陣列確保只初始化一次
+  }, []);
 
   const addWidget = () => {
     if (gridRef.current) {
       gridRef.current.addWidget({ w: 3, h: 2, content: 'New Widget' });
+    }
+  };
+
+  const addNestedWidget = () => {
+    if (gridRef.current) {
+       // 新增一個帶有 subGrid 的 widget
+       gridRef.current.addWidget({
+        w: 6, h: 6,
+        subGridOpts: {
+            children: [
+                { x: 0, y: 0, w: 2, h: 2, content: 'Sub Item 1' }
+            ]
+        }
+       });
     }
   };
 
@@ -97,10 +128,13 @@ function App() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Dashboard with Gridstack.js
+            Nested Gridstack Dashboard
           </Typography>
-          <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget}>
-            Add Widget
+          <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget} sx={{ mr: 1 }}>
+            Add Item
+          </Button>
+          <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
+            Add Nested
           </Button>
         </Toolbar>
       </AppBar>
@@ -136,11 +170,11 @@ function App() {
       </Drawer>
 
       <Main open={open}>
-        <Toolbar /> {/* Spacer for Navbar */}
+        <Toolbar /> 
         
-        {/* Gridstack Container */}
         <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
-           <div className="grid-stack"></div>
+            {/* 給予一個特定的 class name 作為 root */}
+           <div className="grid-stack grid-stack-root"></div>
         </Box>
       </Main>
     </Box>

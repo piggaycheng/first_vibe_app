@@ -9,17 +9,60 @@ body {
   width: 100%;
 }
 
-/* Gridstack Widget Styles */
+/* Root Grid Background */
+.grid-stack-root {
+    background: #f4f6f8;
+    border: 1px dashed #ccc;
+    min-height: 500px;
+    padding: 10px; /* 給最外層一點內距 */
+}
+
+/* Gridstack Widget Content Styles */
 .grid-stack-item-content {
   background-color: #fff;
   color: #2c3e50;
   text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
   border-radius: 4px;
   font-family: "Roboto", "Helvetica", "Arial", sans-serif;
   font-weight: 500;
   border: 1px solid #e0e0e0;
+  
+  /* 確保內容溢出時有捲軸，且不會被截掉 */
+  overflow-y: auto; 
+  overflow-x: hidden;
+  
+  display: flex;
+  flex-direction: column;
+}
+
+/* 針對 Nested Grid 的特定樣式 */
+/* 當 item 內部是一個 grid 時 (Nested Grid Container) */
+.grid-stack-item-content .grid-stack {
+    background-color: rgba(0, 0, 0, 0.05);
+    margin: 5px; 
+    /* 
+       這裡非常重要：
+       1. 確保高度是基於父容器扣除邊距。
+       2. 設定 overflow-y: auto 確保內部太高時出現捲軸。
+       3. 設定 padding-top 避免內容貼頂被視窗邊緣或捲軸遮擋。
+    */
+    height: calc(100% - 10px) !important;
+    overflow-y: auto; 
+    padding: 10px; /* 增加內距，避免內容貼邊 */
+    border-radius: 4px;
+}
+
+/* 確保 grid 內的 items 不會被莫名其妙的 z-index 蓋住 */
+.grid-stack-item {
+    z-index: 1;
+}
+
+/* 修正文字顯示，讓純文字 widget 依然置中 */
+.grid-stack-item-content > div:not(.grid-stack) {
+   flex-grow: 1;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 100%; /* 確保文字容器寬度正確 */
 }
