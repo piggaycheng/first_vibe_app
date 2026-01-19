@@ -77,7 +77,7 @@ function App() {
         { x: 0, y: 0, w: 4, h: 4, content: 'Regular Widget' },
         { 
           x: 4, y: 0, w: 8, h: 6, 
-          content: 'Container Widget (Drop items here)',
+          // content: 'Container Widget (Drop items here)',
           subGridOpts: {
             children: [
               { x: 0, y: 0, w: 3, h: 2, content: 'Nested 1' },
