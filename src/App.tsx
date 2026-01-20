@@ -23,6 +23,7 @@ import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
+import RightSidebar from './components/RightSidebar';
 
 // 引入 Gridstack 及其樣式
 import { GridStack, type GridStackOptions } from 'gridstack';
@@ -225,36 +226,8 @@ function App() {
         </Box>
       </Main>
 
-      <Drawer
-        sx={{
-          width: rightDrawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: rightDrawerWidth,
-            boxSizing: 'border-box',
-            top: '64px',
-            height: 'calc(100% - 64px)',
-          },
-        }}
-        variant="persistent"
-        anchor="right"
-        open={rightOpen}
-        hideBackdrop={true}
-      >
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
-            {['Profile', 'Notifications', 'Logout'].map((text) => (
-              <ListItem key={text} disablePadding>
-                <ListItemButton>
-                  <ListItemText primary={text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </Drawer>
+      <RightSidebar open={rightOpen} width={rightDrawerWidth} />
     </Box>
   );
 }
-
 export default App;

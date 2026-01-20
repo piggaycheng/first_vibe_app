@@ -1,0 +1,23 @@
+.node-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding-left: 5px;
+}
+
+.node-container:hover {
+  background-color: #f0f0f0;
+}
+
+.node-container.selected {
+  background-color: #e0e0e0;
+}
+
+.node-content {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
