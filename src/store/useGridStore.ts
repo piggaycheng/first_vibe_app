@@ -1,12 +1,8 @@
 import { create } from 'zustand';
 import type { GridStackWidget } from 'gridstack';
 
-interface AppState {
-  leftSidebarOpen: boolean;
-  rightSidebarOpen: boolean;
+interface GridState {
   gridItems: GridStackWidget[];
-  toggleLeftSidebar: () => void;
-  toggleRightSidebar: () => void;
   setGridItems: (items: GridStackWidget[]) => void;
 }
 
@@ -25,11 +21,7 @@ const initialGridItems: GridStackWidget[] = [
   },
 ];
 
-export const useAppStore = create<AppState>((set) => ({
-  leftSidebarOpen: true,
-  rightSidebarOpen: true,
+export const useGridStore = create<GridState>((set) => ({
   gridItems: initialGridItems,
-  toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
-  toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
   setGridItems: (items) => set({ gridItems: items }),
 }));

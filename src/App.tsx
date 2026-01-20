@@ -24,7 +24,8 @@ import LayersIcon from '@mui/icons-material/Layers';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
 import RightSidebar from './components/RightSidebar';
-import { useAppStore } from './store/useAppStore';
+import { useUIStore } from './store/useUIStore';
+import { useGridStore } from './store/useGridStore';
 
 // 引入 Gridstack 及其樣式
 import { GridStack, type GridStackOptions } from 'gridstack';
@@ -65,11 +66,11 @@ function App() {
   const { 
     leftSidebarOpen: open, 
     rightSidebarOpen: rightOpen, 
-    gridItems,
     toggleLeftSidebar: handleDrawerToggle, 
-    toggleRightSidebar: handleRightDrawerToggle,
-    setGridItems
-  } = useAppStore();
+    toggleRightSidebar: handleRightDrawerToggle 
+  } = useUIStore();
+
+  const { gridItems, setGridItems } = useGridStore();
   
   const gridRef = useRef<GridStack | null>(null);
 
