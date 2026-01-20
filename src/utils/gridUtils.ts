@@ -29,8 +29,10 @@ export const transformGridToTree = (widgets: GridStackWidget[]): TreeNode[] => {
     };
 
     // 4. 遞迴處理子節點 (Nested Grids)
-    if (widget.subGridOpts && widget.subGridOpts.children && widget.subGridOpts.children.length > 0) {
-      node.children = transformGridToTree(widget.subGridOpts.children);
+    // 只要有 subGridOpts，就視為資料夾，即使子節點為空也給予空陣列
+    // 這樣 Tree View 才會將其視為 Folder 並允許拖入
+    if (widget.subGridOpts) {
+      node.children = transformGridToTree(widget.subGridOpts.children || []);
     }
 
     return node;
