@@ -19,8 +19,8 @@
 
 .delete-widget-btn {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 8px; /* margin 5px + 3px padding */
+  right: 8px;
   background: transparent;
   border: none;
   color: #999;
