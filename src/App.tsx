@@ -96,7 +96,7 @@ function App() {
 
       const syncToStore = () => {
         if (gridRef.current) {
-          const layout = gridRef.current.save(false);
+                    const layout = gridRef.current.save();
           setGridItems(layout as any);
         }
       };
@@ -166,7 +166,7 @@ function App() {
           // or we want to ensure the specific sequence is captured.
           setTimeout(() => {
             if (gridRef.current) {
-              const layout = gridRef.current.save(false);
+                        const layout = gridRef.current.save();
               setGridItems(layout as any);
             }
           }, 0);
@@ -200,7 +200,7 @@ function App() {
 
   const handleExportLayout = () => {
     if (gridRef.current) {
-      const layout = gridRef.current.save(false);
+                const layout = gridRef.current.save();
       const json = JSON.stringify(layout, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const href = URL.createObjectURL(blob);
