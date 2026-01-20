@@ -274,6 +274,7 @@ function App() {
                 <Switch 
                   checked={themeMode === 'dark'} 
                   onChange={toggleTheme} 
+                  onClick={(e) => e.stopPropagation()}
                   inputProps={{ 'aria-label': 'toggle theme' }} 
                   size="small"
                 />
