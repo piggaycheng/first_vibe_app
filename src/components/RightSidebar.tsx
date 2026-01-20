@@ -8,6 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { IconButton } from '@mui/material';
 import '../assets/css/RightSidebar.css';
 import { useGridStore } from '../store/useGridStore';
+import { useUIStore } from '../store/useUIStore';
 import { transformGridToTree } from '../utils/gridUtils';
 
 interface RightSidebarProps {
@@ -19,6 +20,7 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
   const gridItems = useGridStore((state) => state.gridItems);
   const addCommand = useGridStore((state) => state.addCommand);
   const selectWidget = useGridStore((state) => state.selectWidget);
+  const isEditMode = useUIStore((state) => state.isEditMode);
 
   // 將 Gridstack 資料轉換為 Tree 資料
   const treeData = useMemo(() => {
@@ -26,14 +28,12 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
   }, [gridItems]);
 
   const handleMove = ({ dragIds, parentId }: { dragIds: string[], parentId: string | null }) => {
-    // 我們假設一次只拖曳一個
     const nodeId = dragIds[0];
-    // 發送指令給 App (GridController)
     addCommand({
       type: 'MOVE_WIDGET',
       payload: {
         nodeId,
-        targetParentId: parentId, // parentId 為 null 代表移到根目錄
+        targetParentId: parentId,
       },
     });
   };
@@ -68,6 +68,8 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
           paddingTop={10}
           paddingBottom={10}
           onMove={handleMove}
+          disableDrag={!isEditMode}
+          disableDrop={!isEditMode}
         >
           {/* Node Renderer */}
           {({ node, style, dragHandle }: { node: NodeApi<any>, style: React.CSSProperties, dragHandle?: any }) => {
@@ -92,19 +94,21 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexGrow: 1 }}>
                     {node.data.name}
                   </span>
-                  <IconButton 
-                    size="small" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addCommand({
-                        type: 'REMOVE_WIDGET',
-                        payload: { nodeId: node.id }
-                      });
-                    }}
-                    sx={{ p: 0.5, ml: 1, '&:hover': { color: 'error.main' } }}
-                  >
-                    <DeleteIcon fontSize="inherit" />
-                  </IconButton>
+                  {isEditMode && (
+                    <IconButton 
+                      size="small" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addCommand({
+                          type: 'REMOVE_WIDGET',
+                          payload: { nodeId: node.id }
+                        });
+                      }}
+                      sx={{ p: 0.5, ml: 1, '&:hover': { color: 'error.main' } }}
+                    >
+                      <DeleteIcon fontSize="inherit" />
+                    </IconButton>
+                  )}
                 </div>
               </div>
             );

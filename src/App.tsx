@@ -189,17 +189,18 @@ function App() {
               <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout}>
                 Export JSON
               </Button>
-              <IconButton
-                color="inherit"
-                aria-label="open right drawer"
-                onClick={handleRightDrawerToggle}
-                edge="end"
-                sx={{ ml: 1 }}
-              >
-                <AccountTreeIcon />
-              </IconButton>
             </>
           )}
+
+          <IconButton
+            color="inherit"
+            aria-label="open right drawer"
+            onClick={handleRightDrawerToggle}
+            edge="end"
+            sx={{ ml: 1 }}
+          >
+            <AccountTreeIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
 
