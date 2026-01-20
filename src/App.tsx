@@ -256,7 +256,18 @@ function App() {
               </>
             )}
 
-            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0, ml: 2 }}>
+            <IconButton
+              color="inherit"
+              aria-label="open right drawer"
+              onClick={handleRightDrawerToggle}
+              sx={{ ml: 1 }}
+            >
+              <AccountTreeIcon />
+            </IconButton>
+
+            <Divider orientation="vertical" variant="middle" flexItem sx={{ mx: 1.5, height: '24px', alignSelf: 'center' }} />
+
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
               <Avatar alt="User" src="/static/images/avatar/2.jpg" />
             </IconButton>
             <Menu
@@ -288,16 +299,6 @@ function App() {
                 <Typography textAlign="center">Settings</Typography>
               </MenuItem>
             </Menu>
-
-            <IconButton
-              color="inherit"
-              aria-label="open right drawer"
-              onClick={handleRightDrawerToggle}
-              edge="end"
-              sx={{ ml: 1 }}
-            >
-              <AccountTreeIcon />
-            </IconButton>
           </Toolbar>
         </AppBar>
 
