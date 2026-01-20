@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import type { GridStackWidget } from 'gridstack';
 
-export type GridCommandType = 'MOVE_WIDGET' | 'REMOVE_WIDGET';
+export type GridCommandType = 'MOVE_WIDGET' | 'REMOVE_WIDGET' | 'ADD_WIDGET' | 'EXPORT_LAYOUT';
 
 export interface GridCommand {
   type: GridCommandType;
   payload: {
-    nodeId: string;
-    targetParentId?: string | null; // Optional for REMOVE
+    nodeId?: string; // Optional for ADD (generated internally or passed)
+    targetParentId?: string | null;
+    widgetOptions?: any; // For ADD_WIDGET
   };
 }
 
