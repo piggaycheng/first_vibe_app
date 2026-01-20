@@ -171,6 +171,12 @@ export default function GridDashboard() {
         document.body.removeChild(link);
         URL.revokeObjectURL(href);
       }
+      else if (type === 'LOAD_LAYOUT') {
+        const { widgetOptions } = payload;
+        gridRef.current.removeAll();
+        gridRef.current.load(widgetOptions);
+        setGridItems(widgetOptions);
+      }
 
       clearCommand();
     }

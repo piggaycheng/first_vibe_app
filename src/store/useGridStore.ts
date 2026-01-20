@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { GridStackWidget } from 'gridstack';
 
-export type GridCommandType = 'MOVE_WIDGET' | 'REMOVE_WIDGET' | 'ADD_WIDGET' | 'EXPORT_LAYOUT';
+export type GridCommandType = 'MOVE_WIDGET' | 'REMOVE_WIDGET' | 'ADD_WIDGET' | 'EXPORT_LAYOUT' | 'LOAD_LAYOUT';
 
 export interface GridCommand {
   type: GridCommandType;

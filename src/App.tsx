@@ -17,13 +17,15 @@ import {
   Divider,
   Tooltip,
   Switch,
+  Avatar,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import HomeIcon from '@mui/icons-material/Home';
-import InfoIcon from '@mui/icons-material/Info';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
@@ -38,10 +40,14 @@ import RightSidebar from './components/RightSidebar';
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import GridManagementPage from './pages/GridManagementPage';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
 import './App.css';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
+import SaveIcon from '@mui/icons-material/Save';
+import RestoreIcon from '@mui/icons-material/Restore';
+import { useLayoutPersistence } from './hooks/useLayoutPersistence';
 
 const drawerWidth = 240;
 const rightDrawerWidth = 240;
@@ -121,6 +127,21 @@ function App() {
   const addCommand = useGridStore((state) => state.addCommand);
   const navigate = useNavigate();
   const location = useLocation();
+  const { saveLayout, loadLayout } = useLayoutPersistence();
+
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+
+  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  useEffect(() => {
+    loadLayout();
+  }, [loadLayout]);
 
   const theme = useMemo(
     () =>
@@ -177,7 +198,6 @@ function App() {
 
   const menuItems = [
     { text: 'Dashboard', icon: <HomeIcon />, path: '/' },
-    { text: 'Settings', icon: <InfoIcon />, path: '/settings' },
     { text: 'Analytics', icon: <ContactMailIcon />, path: '/analytics' },
   ];
 
@@ -222,11 +242,44 @@ function App() {
                 <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
                   Add Nested
                 </Button>
+                <Button color="inherit" startIcon={<SaveIcon />} onClick={saveLayout}>
+                  Save
+                </Button>
+                <Button color="inherit" startIcon={<RestoreIcon />} onClick={() => loadLayout()}>
+                  Load
+                </Button>
                 <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout}>
                   Export JSON
                 </Button>
               </>
             )}
+
+            <IconButton onClick={handleOpenUserMenu} sx={{ p: 0, ml: 2 }}>
+              <Avatar alt="User" src="/static/images/avatar/2.jpg" />
+            </IconButton>
+            <Menu
+              sx={{ mt: '45px' }}
+              id="menu-appbar"
+              anchorEl={anchorElUser}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              open={Boolean(anchorElUser)}
+              onClose={handleCloseUserMenu}
+            >
+              <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/grid-management'); }}>
+                <Typography textAlign="center">Grid Management</Typography>
+              </MenuItem>
+              <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/settings'); }}>
+                <Typography textAlign="center">Settings</Typography>
+              </MenuItem>
+            </Menu>
 
             <IconButton
               color="inherit"
@@ -305,6 +358,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/grid-management" element={<GridManagementPage />} />
             </Routes>
           </Box>
         </Main>
