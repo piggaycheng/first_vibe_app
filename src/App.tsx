@@ -21,38 +21,54 @@ import InfoIcon from '@mui/icons-material/Info';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 // 引入 Gridstack 及其樣式
 import { GridStack } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
 
 const drawerWidth = 240;
+const rightDrawerWidth = 240;
 
-const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{ open?: boolean }>(
-  ({ theme, open }) => ({
-    flexGrow: 1,
-    padding: theme.spacing(3),
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    marginLeft: `-${drawerWidth}px`,
-    ...(open && {
-      transition: theme.transitions.create('margin', {
-        easing: theme.transitions.easing.easeOut,
-        duration: theme.transitions.duration.enteringScreen,
-      }),
-      marginLeft: 0,
-    }),
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && prop !== 'rightOpen' })<{
+  open?: boolean;
+  rightOpen?: boolean;
+}>(({ theme, open, rightOpen }) => ({
+  flexGrow: 1,
+  padding: theme.spacing(3),
+  transition: theme.transitions.create(['margin', 'width'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
   }),
-);
+  marginLeft: `-${drawerWidth}px`,
+  marginRight: `-${rightDrawerWidth}px`,
+  ...(open && {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  }),
+  ...(rightOpen && {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginRight: 0,
+  }),
+}));
 
 function App() {
   const [open, setOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
   const gridRef = useRef<GridStack | null>(null);
 
   const handleDrawerToggle = () => {
     setOpen(!open);
+  };
+
+  const handleRightDrawerToggle = () => {
+    setRightOpen(!rightOpen);
   };
 
   useEffect(() => {
@@ -136,6 +152,15 @@ function App() {
           <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
             Add Nested
           </Button>
+          <IconButton
+            color="inherit"
+            aria-label="open right drawer"
+            onClick={handleRightDrawerToggle}
+            edge="end"
+            sx={{ ml: 1 }}
+          >
+            <SettingsIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
 
@@ -169,7 +194,7 @@ function App() {
         </List>
       </Drawer>
 
-      <Main open={open}>
+      <Main open={open} rightOpen={rightOpen}>
         <Toolbar /> 
         
         <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
@@ -177,6 +202,35 @@ function App() {
            <div className="grid-stack grid-stack-root"></div>
         </Box>
       </Main>
+
+      <Drawer
+        sx={{
+          width: rightDrawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: rightDrawerWidth,
+            boxSizing: 'border-box',
+            top: '64px',
+            height: 'calc(100% - 64px)',
+          },
+        }}
+        variant="persistent"
+        anchor="right"
+        open={rightOpen}
+        hideBackdrop={true}
+      >
+        <Box sx={{ overflow: 'auto' }}>
+          <List>
+            {['Profile', 'Notifications', 'Logout'].map((text) => (
+              <ListItem key={text} disablePadding>
+                <ListItemButton>
+                  <ListItemText primary={text} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
     </Box>
   );
 }
