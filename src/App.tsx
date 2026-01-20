@@ -33,8 +33,11 @@ import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import RightSidebar from './components/RightSidebar';
-import GridDashboard from './components/GridDashboard';
+import DashboardPage from './pages/DashboardPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import SettingsPage from './pages/SettingsPage';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
 import './App.css';
@@ -116,6 +119,8 @@ function App() {
   } = useUIStore();
 
   const addCommand = useGridStore((state) => state.addCommand);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const theme = useMemo(
     () =>
@@ -169,6 +174,12 @@ function App() {
   const handleExportLayout = () => {
     addCommand({ type: 'EXPORT_LAYOUT', payload: {} });
   };
+
+  const menuItems = [
+    { text: 'Dashboard', icon: <HomeIcon />, path: '/' },
+    { text: 'Settings', icon: <InfoIcon />, path: '/settings' },
+    { text: 'Analytics', icon: <ContactMailIcon />, path: '/analytics' },
+  ];
 
   return (
     <ThemeProvider theme={theme}>
@@ -251,13 +262,16 @@ function App() {
           </DrawerHeader>
           <Divider />
           <List sx={{ flexGrow: 1 }}>
-            {['Dashboard', 'Settings', 'Analytics'].map((text, index) => (
-              <ListItem key={text} disablePadding>
-                <ListItemButton>
+            {menuItems.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton 
+                  selected={location.pathname === item.path}
+                  onClick={() => navigate(item.path)}
+                >
                   <ListItemIcon>
-                    {index === 0 ? <HomeIcon /> : index === 1 ? <InfoIcon /> : <ContactMailIcon />}
+                    {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={text} />
+                  <ListItemText primary={item.text} />
                 </ListItemButton>
               </ListItem>
             ))}
@@ -286,7 +300,12 @@ function App() {
         <Main open={open} rightOpen={rightOpen}>
           <DrawerHeader />
           <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
-            <GridDashboard />
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+            </Routes>
           </Box>
         </Main>
 
