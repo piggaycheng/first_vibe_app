@@ -1,5 +1,6 @@
+import { useTheme } from '@mui/material/styles';
 import {
-  AppBar,
+  AppBar as MuiAppBar,
   Box,
   Toolbar,
   Typography,
@@ -13,14 +14,18 @@ import {
   ListItemText,
   CssBaseline,
   styled,
+  Divider,
 } from '@mui/material';
+import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import HomeIcon from '@mui/icons-material/Home';
 import InfoIcon from '@mui/icons-material/Info';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
-import SettingsIcon from '@mui/icons-material/Settings';
+import AccountTreeIcon from '@mui/icons-material/AccountTree'; // For Tree View
 import DownloadIcon from '@mui/icons-material/Download';
 import RightSidebar from './components/RightSidebar';
 import GridDashboard from './components/GridDashboard';
@@ -30,6 +35,38 @@ import './App.css';
 
 const drawerWidth = 240;
 const rightDrawerWidth = 240;
+
+// Custom AppBar Interface
+interface AppBarProps extends MuiAppBarProps {
+  open?: boolean;
+}
+
+// Styled AppBar that shifts when drawer opens
+const AppBar = styled(MuiAppBar, {
+  shouldForwardProp: (prop) => prop !== 'open',
+})<AppBarProps>(({ theme, open }) => ({
+  transition: theme.transitions.create(['margin', 'width'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  ...(open && {
+    width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: `${drawerWidth}px`,
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  }),
+}));
+
+const DrawerHeader = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(0, 1),
+  // necessary for content to be below app bar
+  ...theme.mixins.toolbar,
+  justifyContent: 'flex-end',
+}));
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && prop !== 'rightOpen' })<{
   open?: boolean;
@@ -60,11 +97,12 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
 }));
 
 function App() {
-  const {
-    leftSidebarOpen: open,
-    rightSidebarOpen: rightOpen,
-    toggleLeftSidebar: handleDrawerToggle,
-    toggleRightSidebar: handleRightDrawerToggle
+  const theme = useTheme();
+  const { 
+    leftSidebarOpen: open, 
+    rightSidebarOpen: rightOpen, 
+    toggleLeftSidebar: handleDrawerToggle, 
+    toggleRightSidebar: handleRightDrawerToggle 
   } = useUIStore();
 
   const addCommand = useGridStore((state) => state.addCommand);
@@ -73,10 +111,10 @@ function App() {
     addCommand({
       type: 'ADD_WIDGET',
       payload: {
-        widgetOptions: {
-          w: 3, h: 2,
-          content: 'New Widget',
-          id: `new-${Date.now()}`
+        widgetOptions: { 
+          w: 3, h: 2, 
+          content: 'New Widget', 
+          id: `new-${Date.now()}` 
         }
       }
     });
@@ -107,14 +145,14 @@ function App() {
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
 
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      <AppBar position="fixed" open={open}>
         <Toolbar>
           <IconButton
             color="inherit"
             aria-label="open drawer"
             onClick={handleDrawerToggle}
             edge="start"
-            sx={{ mr: 2 }}
+            sx={{ mr: 2, ...(open && { display: 'none' }) }}
           >
             <MenuIcon />
           </IconButton>
@@ -137,7 +175,7 @@ function App() {
             edge="end"
             sx={{ ml: 1 }}
           >
-            <SettingsIcon />
+            <AccountTreeIcon />
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -149,15 +187,18 @@ function App() {
           '& .MuiDrawer-paper': {
             width: drawerWidth,
             boxSizing: 'border-box',
-            top: '64px',
-            height: 'calc(100% - 64px)',
           },
         }}
         variant="persistent"
         anchor="left"
         open={open}
-        hideBackdrop={true}
       >
+        <DrawerHeader>
+          <IconButton onClick={handleDrawerToggle}>
+            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        </DrawerHeader>
+        <Divider />
         <List>
           {['Dashboard', 'Settings', 'Analytics'].map((text, index) => (
             <ListItem key={text} disablePadding>
@@ -173,8 +214,7 @@ function App() {
       </Drawer>
 
       <Main open={open} rightOpen={rightOpen}>
-        <Toolbar />
-
+        <DrawerHeader />
         <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
           <GridDashboard />
         </Box>
@@ -185,3 +225,4 @@ function App() {
   );
 }
 export default App;
+
