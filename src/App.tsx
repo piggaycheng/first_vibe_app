@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   AppBar,
   Box,
@@ -24,6 +24,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
 import RightSidebar from './components/RightSidebar';
+import { useAppStore } from './store/useAppStore';
 
 // 引入 Gridstack 及其樣式
 import { GridStack, type GridStackOptions } from 'gridstack';
@@ -61,17 +62,14 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
 }));
 
 function App() {
-  const [open, setOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const { 
+    leftSidebarOpen: open, 
+    rightSidebarOpen: rightOpen, 
+    toggleLeftSidebar: handleDrawerToggle, 
+    toggleRightSidebar: handleRightDrawerToggle 
+  } = useAppStore();
+  
   const gridRef = useRef<GridStack | null>(null);
-
-  const handleDrawerToggle = () => {
-    setOpen(!open);
-  };
-
-  const handleRightDrawerToggle = () => {
-    setRightOpen(!rightOpen);
-  };
 
   useEffect(() => {
     // 初始化 GridStack
