@@ -2,10 +2,19 @@ import { useEffect, useRef } from 'react';
 import { GridStack, type GridStackOptions, type GridStackNode } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
 import { useGridStore } from '../store/useGridStore';
+import { useUIStore } from '../store/useUIStore';
 
 export default function GridDashboard() {
   const { gridItems, setGridItems, pendingCommand, clearCommand, selectedWidgetId } = useGridStore();
+  const isEditMode = useUIStore((state) => state.isEditMode);
   const gridRef = useRef<GridStack | null>(null);
+
+  // Edit Mode Effect
+  useEffect(() => {
+    if (gridRef.current) {
+      gridRef.current.setStatic(!isEditMode);
+    }
+  }, [isEditMode]);
 
   // Selection & Scroll Sync
   useEffect(() => {
@@ -178,6 +187,6 @@ export default function GridDashboard() {
   }, []);
 
   return (
-    <div className="grid-stack grid-stack-root"></div>
+    <div className={`grid-stack grid-stack-root ${isEditMode ? 'edit-mode' : ''}`}></div>
   );
 }

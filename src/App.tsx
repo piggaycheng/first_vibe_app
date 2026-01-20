@@ -15,6 +15,7 @@ import {
   CssBaseline,
   styled,
   Divider,
+  Tooltip,
 } from '@mui/material';
 import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -25,8 +26,10 @@ import InfoIcon from '@mui/icons-material/Info';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
-import AccountTreeIcon from '@mui/icons-material/AccountTree'; // For Tree View
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import DownloadIcon from '@mui/icons-material/Download';
+import DesignServicesIcon from '@mui/icons-material/DesignServices';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import RightSidebar from './components/RightSidebar';
 import GridDashboard from './components/GridDashboard';
 import { useUIStore } from './store/useUIStore';
@@ -101,8 +104,10 @@ function App() {
   const { 
     leftSidebarOpen: open, 
     rightSidebarOpen: rightOpen, 
+    isEditMode,
     toggleLeftSidebar: handleDrawerToggle, 
-    toggleRightSidebar: handleRightDrawerToggle 
+    toggleRightSidebar: handleRightDrawerToggle,
+    toggleEditMode
   } = useUIStore();
 
   const addCommand = useGridStore((state) => state.addCommand);
@@ -159,24 +164,42 @@ function App() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Nested Gridstack Dashboard
           </Typography>
-          <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget} sx={{ mr: 1 }}>
-            Add Item
-          </Button>
-          <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
-            Add Nested
-          </Button>
-          <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout}>
-            Export JSON
-          </Button>
-          <IconButton
-            color="inherit"
-            aria-label="open right drawer"
-            onClick={handleRightDrawerToggle}
-            edge="end"
-            sx={{ ml: 1 }}
-          >
-            <AccountTreeIcon />
-          </IconButton>
+          
+          <Box sx={{ flexGrow: 1 }} />
+
+          <Tooltip title={isEditMode ? "Switch to View Mode" : "Switch to Edit Mode"}>
+            <Button 
+              color="inherit" 
+              onClick={toggleEditMode}
+              startIcon={isEditMode ? <VisibilityIcon /> : <DesignServicesIcon />}
+              sx={{ mr: 2, border: '1px solid rgba(255,255,255,0.3)' }}
+            >
+              {isEditMode ? "Editing" : "Viewing"}
+            </Button>
+          </Tooltip>
+
+          {isEditMode && (
+            <>
+              <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget} sx={{ mr: 1 }}>
+                Add Item
+              </Button>
+              <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
+                Add Nested
+              </Button>
+              <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout}>
+                Export JSON
+              </Button>
+              <IconButton
+                color="inherit"
+                aria-label="open right drawer"
+                onClick={handleRightDrawerToggle}
+                edge="end"
+                sx={{ ml: 1 }}
+              >
+                <AccountTreeIcon />
+              </IconButton>
+            </>
+          )}
         </Toolbar>
       </AppBar>
 
