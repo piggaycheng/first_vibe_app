@@ -28,7 +28,7 @@ import 'gridstack/dist/gridstack.min.css';
 
 const drawerWidth = 240;
 
-const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{ open?: boolean }>(
   ({ theme, open }) => ({
     flexGrow: 1,
     padding: theme.spacing(3),
@@ -49,7 +49,7 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
 
 function App() {
   const [open, setOpen] = useState(true);
-  const gridRef = useRef(null);
+  const gridRef = useRef<GridStack | null>(null);
 
   const handleDrawerToggle = () => {
     setOpen(!open);
@@ -70,7 +70,7 @@ function App() {
            margin: 5,
            acceptWidgets: true // sub-grid 也接受 widgets
         }
-      }, '.grid-stack-root'); // 指定一個 root class
+      } as any, '.grid-stack-root'); // 指定一個 root class
 
       // 載入預設的巢狀結構
       const widgets = [
