@@ -61,7 +61,7 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
         </Typography>
         <Tree
           data={treeData}
-          selection={selectedWidgetId}
+          selection={selectedWidgetId || undefined}
           onSelect={(nodes) => {
             if (nodes.length > 0) {
               selectWidget(nodes[0].id);
