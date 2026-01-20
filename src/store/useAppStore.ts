@@ -1,15 +1,35 @@
 import { create } from 'zustand';
+import type { GridStackWidget } from 'gridstack';
 
 interface AppState {
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
+  gridItems: GridStackWidget[];
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
+  setGridItems: (items: GridStackWidget[]) => void;
 }
+
+const initialGridItems: GridStackWidget[] = [
+  { x: 0, y: 0, w: 4, h: 4, content: 'Regular Widget' },
+  {
+    x: 4, y: 0, w: 8, h: 6,
+    // content: 'Container Widget (Drop items here)',
+    subGridOpts: {
+      children: [
+        { x: 0, y: 0, w: 3, h: 2, content: 'Nested 1' },
+        { x: 3, y: 0, w: 3, h: 2, content: 'Nested 2' },
+        { x: 0, y: 2, w: 6, h: 2, content: 'Nested 3' }
+      ]
+    }
+  },
+];
 
 export const useAppStore = create<AppState>((set) => ({
   leftSidebarOpen: true,
   rightSidebarOpen: true,
+  gridItems: initialGridItems,
   toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
+  setGridItems: (items) => set({ gridItems: items }),
 }));

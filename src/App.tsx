@@ -65,8 +65,10 @@ function App() {
   const { 
     leftSidebarOpen: open, 
     rightSidebarOpen: rightOpen, 
+    gridItems,
     toggleLeftSidebar: handleDrawerToggle, 
-    toggleRightSidebar: handleRightDrawerToggle 
+    toggleRightSidebar: handleRightDrawerToggle,
+    setGridItems
   } = useAppStore();
   
   const gridRef = useRef<GridStack | null>(null);
@@ -90,25 +92,23 @@ function App() {
         }
       } as GridStackOptions, '.grid-stack-root'); // 指定一個 root class
 
-      // 載入預設的巢狀結構
-      const widgets = [
-        { x: 0, y: 0, w: 4, h: 4, content: 'Regular Widget' },
-        {
-          x: 4, y: 0, w: 8, h: 6,
-          // content: 'Container Widget (Drop items here)',
-          subGridOpts: {
-            children: [
-              { x: 0, y: 0, w: 3, h: 2, content: 'Nested 1' },
-              { x: 3, y: 0, w: 3, h: 2, content: 'Nested 2' },
-              { x: 0, y: 2, w: 6, h: 2, content: 'Nested 3' }
-            ]
-          }
-        },
-      ];
+      // 載入 Store 中的初始結構
+      gridRef.current.load(gridItems);
 
-      gridRef.current.load(widgets);
+      // 監聽 GridStack 事件以同步回 Store
+      const syncToStore = () => {
+        if (gridRef.current) {
+          const layout = gridRef.current.save(false);
+          setGridItems(layout as any); // GridStackWidget[] matches but generic typing might be loose
+        }
+      };
+
+      gridRef.current.on('change', syncToStore);
+      gridRef.current.on('added', syncToStore);
+      gridRef.current.on('removed', syncToStore);
     }
-  }, []);
+  }, []); // Empty dependency array: Only init once on mount. 
+  // Note: We are not reacting to gridItems changes to avoid circular updates for now.
 
   const addWidget = () => {
     if (gridRef.current) {
@@ -131,6 +131,9 @@ function App() {
   };
 
   const handleExportLayout = () => {
+    // Export now uses the Store state if we trust it's in sync, 
+    // or we can still get it fresh from gridRef to be 100% sure.
+    // Let's keep getting it from gridRef for the export file to be safe.
     if (gridRef.current) {
       const layout = gridRef.current.save(false);
       const json = JSON.stringify(layout, null, 2);
