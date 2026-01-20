@@ -12,11 +12,25 @@ interface RightSidebarProps {
 
 export default function RightSidebar({ open, width }: RightSidebarProps) {
   const gridItems = useGridStore((state) => state.gridItems);
+  const addCommand = useGridStore((state) => state.addCommand);
 
   // 將 Gridstack 資料轉換為 Tree 資料
   const treeData = useMemo(() => {
     return transformGridToTree(gridItems);
   }, [gridItems]);
+
+  const handleMove = ({ dragIds, parentId }: { dragIds: string[], parentId: string | null, index: number }) => {
+    // 我們假設一次只拖曳一個
+    const nodeId = dragIds[0];
+    // 發送指令給 App (GridController)
+    addCommand({
+      type: 'MOVE_WIDGET',
+      payload: {
+        nodeId,
+        targetParentId: parentId, // parentId 為 null 代表移到根目錄
+      },
+    });
+  };
 
   return (
     <Drawer
@@ -47,6 +61,7 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
           rowHeight={32}
           paddingTop={10}
           paddingBottom={10}
+          onMove={handleMove}
         >
           {/* Node Renderer */}
           {({ node, style, dragHandle }: { node: NodeApi<any>, style: React.CSSProperties, dragHandle?: any }) => (

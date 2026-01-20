@@ -1,9 +1,22 @@
 import { create } from 'zustand';
 import type { GridStackWidget } from 'gridstack';
 
+export type GridCommandType = 'MOVE_WIDGET';
+
+export interface GridCommand {
+  type: GridCommandType;
+  payload: {
+    nodeId: string;
+    targetParentId: string | null; // null means root
+  };
+}
+
 interface GridState {
   gridItems: GridStackWidget[];
+  pendingCommand: GridCommand | null;
   setGridItems: (items: GridStackWidget[]) => void;
+  addCommand: (command: GridCommand) => void;
+  clearCommand: () => void;
 }
 
 const initialGridItems: GridStackWidget[] = [
@@ -24,5 +37,8 @@ const initialGridItems: GridStackWidget[] = [
 
 export const useGridStore = create<GridState>((set) => ({
   gridItems: initialGridItems,
+  pendingCommand: null,
   setGridItems: (items) => set({ gridItems: items }),
+  addCommand: (command) => set({ pendingCommand: command }),
+  clearCommand: () => set({ pendingCommand: null }),
 }));

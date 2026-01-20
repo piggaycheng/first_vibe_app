@@ -63,44 +63,41 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
 }));
 
 function App() {
-  const { 
-    leftSidebarOpen: open, 
-    rightSidebarOpen: rightOpen, 
-    toggleLeftSidebar: handleDrawerToggle, 
-    toggleRightSidebar: handleRightDrawerToggle 
+  const {
+    leftSidebarOpen: open,
+    rightSidebarOpen: rightOpen,
+    toggleLeftSidebar: handleDrawerToggle,
+    toggleRightSidebar: handleRightDrawerToggle
   } = useUIStore();
 
-  const { gridItems, setGridItems } = useGridStore();
-  
+  const { gridItems, setGridItems, pendingCommand, clearCommand } = useGridStore();
+
   const gridRef = useRef<GridStack | null>(null);
 
   useEffect(() => {
     // 初始化 GridStack
-    // Gridstack 會自動尋找並初始化所有 nested grids，只要它們有正確的 class 結構
     if (!gridRef.current) {
       gridRef.current = GridStack.init({
         cellHeight: 100,
         margin: 5,
-        minRow: 1, // 確保至少有一行
-        acceptWidgets: true, // 允許接受拖入的 widget
-        dragIn: '.new-widget', // 如果有外部拖入的需求
-        float: true, // 允許浮動
+        minRow: 1,
+        acceptWidgets: true,
+        dragIn: '.new-widget',
+        float: true,
         subGridOpts: {
-          cellHeight: 80, // sub-grid 的高度可以不同
+          cellHeight: 80,
           margin: 5,
-          acceptWidgets: true, // sub-grid 也接受 widgets
-          float: true // 允許浮動
+          acceptWidgets: true,
+          float: true
         }
-      } as GridStackOptions, '.grid-stack-root'); // 指定一個 root class
+      } as GridStackOptions, '.grid-stack-root');
 
-      // 載入 Store 中的初始結構
       gridRef.current.load(gridItems);
 
-      // 監聽 GridStack 事件以同步回 Store
       const syncToStore = () => {
         if (gridRef.current) {
           const layout = gridRef.current.save(false);
-          setGridItems(layout as any); // GridStackWidget[] matches but generic typing might be loose
+          setGridItems(layout as any);
         }
       };
 
@@ -108,8 +105,78 @@ function App() {
       gridRef.current.on('added', syncToStore);
       gridRef.current.on('removed', syncToStore);
     }
-  }, []); // Empty dependency array: Only init once on mount. 
-  // Note: We are not reacting to gridItems changes to avoid circular updates for now.
+  }, []);
+
+  // Command Processor
+  useEffect(() => {
+    if (pendingCommand && pendingCommand.type === 'MOVE_WIDGET') {
+      const { nodeId, targetParentId } = pendingCommand.payload;
+
+      // 1. Find the widget element to move
+      // GridStack adds 'gs-id' attribute with the node ID
+      const widgetEl = document.querySelector(`.grid-stack-item[gs-id="${nodeId}"]`);
+
+      if (widgetEl && gridRef.current) {
+        // 2. Find the target grid
+        let targetGrid: GridStack | undefined;
+
+        if (!targetParentId) {
+          // Move to Root Grid
+          targetGrid = gridRef.current;
+        } else {
+          // Move to a Nested Grid
+          // Find the parent widget first
+          const parentEl = document.querySelector(`.grid-stack-item[gs-id="${targetParentId}"]`);
+          if (parentEl) {
+            // Check if it has a sub-grid
+            const subGridEl = parentEl.querySelector('.grid-stack');
+            if (subGridEl && (subGridEl as any).gridstack) {
+              targetGrid = (subGridEl as any).gridstack;
+            } else {
+              // TODO: If it's not a sub-grid yet, we might want to convert it?
+              // For now, ignore if target is not a container.
+              console.warn('Target widget is not a container (sub-grid).');
+            }
+          }
+        }
+
+        // 3. Execute Move
+        if (targetGrid) {
+          const gridNode = (widgetEl as any).gridstackNode;
+          const sourceGrid = gridNode?.grid;
+
+          // 3.1 Remove from old grid (crucial to clean up placeholder)
+          if (sourceGrid) {
+            sourceGrid.removeWidget(widgetEl, false); // false = keep DOM
+          }
+
+          // 3.2 Prepare for new grid
+          // Remove position attributes to force auto-positioning
+          widgetEl.removeAttribute('gs-x');
+          widgetEl.removeAttribute('gs-y');
+
+          // 3.3 Move DOM element manually
+          targetGrid.el.appendChild(widgetEl);
+
+          // 3.4 Register as widget in new grid
+          targetGrid.makeWidget(widgetEl as HTMLElement);
+
+          // 3.5 Force Store Sync
+          // Since programmatic moves might not trigger 'change' consistently in all cases,
+          // or we want to ensure the specific sequence is captured.
+          setTimeout(() => {
+            if (gridRef.current) {
+              const layout = gridRef.current.save(false);
+              setGridItems(layout as any);
+            }
+          }, 0);
+        }
+      }
+
+      // Clear command to avoid repetition
+      clearCommand();
+    }
+  }, [pendingCommand, clearCommand]);
 
   const addWidget = () => {
     if (gridRef.current) {
@@ -119,7 +186,6 @@ function App() {
 
   const addNestedWidget = () => {
     if (gridRef.current) {
-      // 新增一個帶有 subGrid 的 widget
       gridRef.current.addWidget({
         w: 6, h: 6,
         id: `nested-container-${Date.now()}`,
@@ -133,9 +199,6 @@ function App() {
   };
 
   const handleExportLayout = () => {
-    // Export now uses the Store state if we trust it's in sync, 
-    // or we can still get it fresh from gridRef to be 100% sure.
-    // Let's keep getting it from gridRef for the export file to be safe.
     if (gridRef.current) {
       const layout = gridRef.current.save(false);
       const json = JSON.stringify(layout, null, 2);
