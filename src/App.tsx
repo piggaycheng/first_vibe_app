@@ -29,7 +29,7 @@ import { useGridStore } from './store/useGridStore';
 import './App.css';
 
 // 引入 Gridstack 及其樣式
-import { GridStack, type GridStackOptions } from 'gridstack';
+import { GridStack, type GridStackOptions, type GridStackNode } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
 
 const drawerWidth = 240;
@@ -64,15 +64,15 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
 }));
 
 function App() {
-  const { 
-    leftSidebarOpen: open, 
-    rightSidebarOpen: rightOpen, 
-    toggleLeftSidebar: handleDrawerToggle, 
-    toggleRightSidebar: handleRightDrawerToggle 
+  const {
+    leftSidebarOpen: open,
+    rightSidebarOpen: rightOpen,
+    toggleLeftSidebar: handleDrawerToggle,
+    toggleRightSidebar: handleRightDrawerToggle
   } = useUIStore();
 
   const { gridItems, setGridItems, pendingCommand, clearCommand, selectedWidgetId } = useGridStore();
-  
+
   const gridRef = useRef<GridStack | null>(null);
 
   // Selection & Scroll Sync
@@ -86,7 +86,7 @@ function App() {
       // 2. Find target widget
       // We look for .grid-stack-item with the gs-id
       const targetEl = document.querySelector(`.grid-stack-item[gs-id="${selectedWidgetId}"]`);
-      
+
       if (targetEl) {
         // 3. Add highlight class
         targetEl.classList.add('highlighted');
@@ -103,7 +103,8 @@ function App() {
 
   useEffect(() => {
     // 初始化 GridStack
-    if (!gridRef.current) {      gridRef.current = GridStack.init({
+    if (!gridRef.current) {
+      gridRef.current = GridStack.init({
         cellHeight: 100,
         margin: 5,
         minRow: 1,
@@ -120,93 +121,137 @@ function App() {
 
       gridRef.current.load(gridItems);
 
+      // Helper to inject delete buttons into the DOM
+      const injectDeleteButtons = (nodes: GridStackNode[]) => {
+        nodes.forEach(node => {
+          if (node.el && !node.el.querySelector('.delete-widget-btn')) {
+            const btn = document.createElement('button');
+            btn.className = 'delete-widget-btn';
+            btn.innerText = '✕';
+            btn.title = 'Remove';
+            // Append directly to the widget container (sibling to content)
+            node.el.appendChild(btn);
+          }
+          // Recursively handle nested grids
+          if (node.subGrid && node.subGrid.engine.nodes) {
+            injectDeleteButtons(node.subGrid.engine.nodes);
+          }
+        });
+      };
+
+      // Inject buttons on initial load
+      injectDeleteButtons(gridRef.current.engine.nodes);
+
       const syncToStore = () => {
         if (gridRef.current) {
-                    const layout = gridRef.current.save();
+          const layout = gridRef.current.save();
           setGridItems(layout as any);
         }
       };
 
+      // Handler for new widgets
+      const handleAdded = (event: Event, items: GridStackNode[]) => {
+        injectDeleteButtons(items);
+        syncToStore();
+      };
+
       gridRef.current.on('change', syncToStore);
-      gridRef.current.on('added', syncToStore);
+      gridRef.current.on('added', handleAdded);
       gridRef.current.on('removed', syncToStore);
     }
-  }, []);
+  }, []); // Empty dependency array: Only init once on mount.
 
   // Command Processor
   useEffect(() => {
-    if (pendingCommand && pendingCommand.type === 'MOVE_WIDGET') {
-      const { nodeId, targetParentId } = pendingCommand.payload;
+    if (pendingCommand) {
+      if (pendingCommand.type === 'MOVE_WIDGET') {
+        const { nodeId, targetParentId } = pendingCommand.payload;
 
-      // 1. Find the widget element to move
-      // GridStack adds 'gs-id' attribute with the node ID
-      const widgetEl = document.querySelector(`.grid-stack-item[gs-id="${nodeId}"]`);
+        // 1. Find the widget element to move
+        const widgetEl = document.querySelector(`.grid-stack-item[gs-id="${nodeId}"]`);
 
-      if (widgetEl && gridRef.current) {
-        // 2. Find the target grid
-        let targetGrid: GridStack | undefined;
+        if (widgetEl && gridRef.current) {
+          // 2. Find the target grid
+          let targetGrid: GridStack | undefined;
 
-        if (!targetParentId) {
-          // Move to Root Grid
-          targetGrid = gridRef.current;
-        } else {
-          // Move to a Nested Grid
-          // Find the parent widget first
-          const parentEl = document.querySelector(`.grid-stack-item[gs-id="${targetParentId}"]`);
-          if (parentEl) {
-            // Check if it has a sub-grid
-            const subGridEl = parentEl.querySelector('.grid-stack');
-            if (subGridEl && (subGridEl as any).gridstack) {
-              targetGrid = (subGridEl as any).gridstack;
-            } else {
-              // TODO: If it's not a sub-grid yet, we might want to convert it?
-              // For now, ignore if target is not a container.
-              console.warn('Target widget is not a container (sub-grid).');
+          if (!targetParentId) {
+            targetGrid = gridRef.current;
+          } else {
+            const parentEl = document.querySelector(`.grid-stack-item[gs-id="${targetParentId}"]`);
+            if (parentEl) {
+              const subGridEl = parentEl.querySelector('.grid-stack');
+              if (subGridEl && (subGridEl as any).gridstack) {
+                targetGrid = (subGridEl as any).gridstack;
+              }
             }
+          }
+
+          // 3. Execute Move
+          if (targetGrid) {
+            const gridNode = (widgetEl as any).gridstackNode;
+            const sourceGrid = gridNode?.grid;
+
+            if (sourceGrid) {
+              sourceGrid.removeWidget(widgetEl, false); // false = keep DOM
+            }
+
+            widgetEl.removeAttribute('gs-x');
+            widgetEl.removeAttribute('gs-y');
+
+            targetGrid.el.appendChild(widgetEl);
+            targetGrid.makeWidget(widgetEl as HTMLElement);
+
+            setTimeout(() => {
+              if (gridRef.current) {
+                const layout = gridRef.current.save();
+                setGridItems(layout as any);
+              }
+            }, 0);
           }
         }
-
-        // 3. Execute Move
-        if (targetGrid) {
+      } else if (pendingCommand.type === 'REMOVE_WIDGET') {
+        const { nodeId } = pendingCommand.payload;
+        const widgetEl = document.querySelector(`.grid-stack-item[gs-id="${nodeId}"]`);
+        if (widgetEl) {
           const gridNode = (widgetEl as any).gridstackNode;
-          const sourceGrid = gridNode?.grid;
-
-          // 3.1 Remove from old grid (crucial to clean up placeholder)
-          if (sourceGrid) {
-            sourceGrid.removeWidget(widgetEl, false); // false = keep DOM
+          if (gridNode && gridNode.grid) {
+            gridNode.grid.removeWidget(widgetEl);
           }
-
-          // 3.2 Prepare for new grid
-          // Remove position attributes to force auto-positioning
-          widgetEl.removeAttribute('gs-x');
-          widgetEl.removeAttribute('gs-y');
-
-          // 3.3 Move DOM element manually
-          targetGrid.el.appendChild(widgetEl);
-
-          // 3.4 Register as widget in new grid
-          targetGrid.makeWidget(widgetEl as HTMLElement);
-
-          // 3.5 Force Store Sync
-          // Since programmatic moves might not trigger 'change' consistently in all cases,
-          // or we want to ensure the specific sequence is captured.
-          setTimeout(() => {
-            if (gridRef.current) {
-                        const layout = gridRef.current.save();
-              setGridItems(layout as any);
-            }
-          }, 0);
         }
       }
 
-      // Clear command to avoid repetition
       clearCommand();
     }
   }, [pendingCommand, clearCommand]);
 
+  // Global Event Listener for Delete Buttons
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.matches('.delete-widget-btn')) {
+        const widgetEl = target.closest('.grid-stack-item');
+        if (widgetEl) {
+          const id = widgetEl.getAttribute('gs-id');
+          if (id) {
+            useGridStore.getState().addCommand({
+              type: 'REMOVE_WIDGET',
+              payload: { nodeId: id }
+            });
+          }
+        }
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
+
   const addWidget = () => {
     if (gridRef.current) {
-      gridRef.current.addWidget({ w: 3, h: 2, content: 'New Widget', id: `new-${Date.now()}` });
+      gridRef.current.addWidget({
+        w: 3, h: 2,
+        content: 'New Widget',
+        id: `new-${Date.now()}`
+      });
     }
   };
 
@@ -226,7 +271,7 @@ function App() {
 
   const handleExportLayout = () => {
     if (gridRef.current) {
-                const layout = gridRef.current.save();
+      const layout = gridRef.current.save();
       const json = JSON.stringify(layout, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const href = URL.createObjectURL(blob);

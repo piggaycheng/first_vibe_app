@@ -4,6 +4,8 @@ import { Tree, NodeApi } from 'react-arborist';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { IconButton } from '@mui/material';
 import '../assets/css/RightSidebar.css';
 import { useGridStore } from '../store/useGridStore';
 import { transformGridToTree } from '../utils/gridUtils';
@@ -85,11 +87,24 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
                   selectWidget(node.id);
                 }}
               >
-                <div className="node-content" style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="node-content" style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflow: 'hidden' }}>
                   <Icon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexGrow: 1 }}>
                     {node.data.name}
                   </span>
+                  <IconButton 
+                    size="small" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addCommand({
+                        type: 'REMOVE_WIDGET',
+                        payload: { nodeId: node.id }
+                      });
+                    }}
+                    sx={{ p: 0.5, ml: 1, '&:hover': { color: 'error.main' } }}
+                  >
+                    <DeleteIcon fontSize="inherit" />
+                  </IconButton>
                 </div>
               </div>
             );

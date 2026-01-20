@@ -17,12 +17,12 @@ export const transformGridToTree = (widgets: GridStackWidget[]): TreeNode[] => {
     // 注意：每次 render 若重新生成 ID 會導致 Tree 狀態重置，建議原始資料本身就要有 ID
     const id = widget.id ? String(widget.id) : `node-${index}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // 2. 處理顯示名稱：去除 HTML 標籤或是使用預設名稱
-    const name = widget.content 
-      ? widget.content.replace(/<[^>]*>?/gm, '') // 簡單去除 HTML tag
-      : `Widget ${id}`;
+    // 2. 處理顯示名稱：
+    // 去除 HTML tag (以防萬一 content 仍含有 HTML)
+    let name = widget.content || `Widget ${id}`;
+    name = name.replace(/<[^>]*>?/gm, '');
+    name = name.trim() || 'Untitled Widget';
 
-    // 3. 建立基本節點
     const node: TreeNode = {
       id,
       name: name.trim() || 'Untitled Widget',
