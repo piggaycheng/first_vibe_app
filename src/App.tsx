@@ -22,6 +22,7 @@ import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
 import SettingsIcon from '@mui/icons-material/Settings';
+import DownloadIcon from '@mui/icons-material/Download';
 
 // 引入 Gridstack 及其樣式
 import { GridStack } from 'gridstack';
@@ -128,6 +129,22 @@ function App() {
     }
   };
 
+  const handleExportLayout = () => {
+    if (gridRef.current) {
+      const layout = gridRef.current.save(false);
+      const json = JSON.stringify(layout, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = 'grid-layout.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(href);
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
@@ -151,6 +168,9 @@ function App() {
           </Button>
           <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
             Add Nested
+          </Button>
+          <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout}>
+            Export JSON
           </Button>
           <IconButton
             color="inherit"
