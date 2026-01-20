@@ -26,6 +26,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import RightSidebar from './components/RightSidebar';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
+import './App.css';
 
 // 引入 Gridstack 及其樣式
 import { GridStack, type GridStackOptions } from 'gridstack';
@@ -63,21 +64,46 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
 }));
 
 function App() {
-  const {
-    leftSidebarOpen: open,
-    rightSidebarOpen: rightOpen,
-    toggleLeftSidebar: handleDrawerToggle,
-    toggleRightSidebar: handleRightDrawerToggle
+  const { 
+    leftSidebarOpen: open, 
+    rightSidebarOpen: rightOpen, 
+    toggleLeftSidebar: handleDrawerToggle, 
+    toggleRightSidebar: handleRightDrawerToggle 
   } = useUIStore();
 
-  const { gridItems, setGridItems, pendingCommand, clearCommand } = useGridStore();
-
+  const { gridItems, setGridItems, pendingCommand, clearCommand, selectedWidgetId } = useGridStore();
+  
   const gridRef = useRef<GridStack | null>(null);
+
+  // Selection & Scroll Sync
+  useEffect(() => {
+    // 1. Remove previous highlights
+    document.querySelectorAll('.highlighted').forEach(el => {
+      el.classList.remove('highlighted');
+    });
+
+    if (selectedWidgetId) {
+      // 2. Find target widget
+      // We look for .grid-stack-item with the gs-id
+      const targetEl = document.querySelector(`.grid-stack-item[gs-id="${selectedWidgetId}"]`);
+      
+      if (targetEl) {
+        // 3. Add highlight class
+        targetEl.classList.add('highlighted');
+
+        // 4. Scroll into view
+        targetEl.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center'
+        });
+      }
+    }
+  }, [selectedWidgetId]);
 
   useEffect(() => {
     // 初始化 GridStack
-    if (!gridRef.current) {
-      gridRef.current = GridStack.init({
+    if (!gridRef.current) {      gridRef.current = GridStack.init({
         cellHeight: 100,
         margin: 5,
         minRow: 1,

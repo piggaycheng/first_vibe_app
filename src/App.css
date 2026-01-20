@@ -1,1 +1,13 @@
 /* Reset or empty defaults to let MUI handle styles */
+
+/* Highlighted Widget Style */
+.grid-stack-item.highlighted {
+  z-index: 1000 !important; /* Ensure container is on top */
+}
+
+.grid-stack-item.highlighted > .grid-stack-item-content {
+  border: 3px solid #1976d2 !important; /* MUI Primary Blue */
+  box-shadow: 0 0 15px rgba(25, 118, 210, 0.8) !important;
+  background-color: rgba(25, 118, 210, 0.1) !important; /* Light blue tint */
+  transition: all 0.3s ease-in-out;
+}

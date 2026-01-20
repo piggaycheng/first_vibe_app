@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { Drawer, Box, Typography } from '@mui/material';
 import { Tree, NodeApi } from 'react-arborist';
+import FolderIcon from '@mui/icons-material/Folder';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import '../assets/css/RightSidebar.css';
 import { useGridStore } from '../store/useGridStore';
 import { transformGridToTree } from '../utils/gridUtils';
@@ -13,13 +16,14 @@ interface RightSidebarProps {
 export default function RightSidebar({ open, width }: RightSidebarProps) {
   const gridItems = useGridStore((state) => state.gridItems);
   const addCommand = useGridStore((state) => state.addCommand);
+  const selectWidget = useGridStore((state) => state.selectWidget);
 
   // 將 Gridstack 資料轉換為 Tree 資料
   const treeData = useMemo(() => {
     return transformGridToTree(gridItems);
   }, [gridItems]);
 
-  const handleMove = ({ dragIds, parentId }: { dragIds: string[], parentId: string | null, index: number }) => {
+  const handleMove = ({ dragIds, parentId }: { dragIds: string[], parentId: string | null }) => {
     // 我們假設一次只拖曳一個
     const nodeId = dragIds[0];
     // 發送指令給 App (GridController)
@@ -64,19 +68,32 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
           onMove={handleMove}
         >
           {/* Node Renderer */}
-          {({ node, style, dragHandle }: { node: NodeApi<any>, style: React.CSSProperties, dragHandle?: any }) => (
-            <div 
-              style={style} 
-              ref={dragHandle} 
-              className={`node-container ${node.isSelected ? 'selected' : ''}`} 
-              onClick={() => node.toggle()}
-            >
-              <div className="node-content">
-                {node.isLeaf ? '📄' : (node.isOpen ? '📂' : '📁')}
-                <span style={{ marginLeft: '8px' }}>{node.data.name}</span>
+          {({ node, style, dragHandle }: { node: NodeApi<any>, style: React.CSSProperties, dragHandle?: any }) => {
+             // Determine Icon
+             const Icon = node.isLeaf 
+               ? DashboardIcon 
+               : (node.isOpen ? FolderOpenIcon : FolderIcon);
+
+             return (
+              <div 
+                style={style} 
+                ref={dragHandle} 
+                className={`node-container ${node.isSelected ? 'selected' : ''}`} 
+                onClick={() => {
+                  node.toggle();
+                  node.select();
+                  selectWidget(node.id);
+                }}
+              >
+                <div className="node-content" style={{ display: 'flex', alignItems: 'center' }}>
+                  <Icon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {node.data.name}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          }}
         </Tree>
       </Box>
     </Drawer>

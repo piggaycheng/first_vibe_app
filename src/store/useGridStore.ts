@@ -14,9 +14,11 @@ export interface GridCommand {
 interface GridState {
   gridItems: GridStackWidget[];
   pendingCommand: GridCommand | null;
+  selectedWidgetId: string | null;
   setGridItems: (items: GridStackWidget[]) => void;
   addCommand: (command: GridCommand) => void;
   clearCommand: () => void;
+  selectWidget: (id: string | null) => void;
 }
 
 const initialGridItems: GridStackWidget[] = [
@@ -38,7 +40,9 @@ const initialGridItems: GridStackWidget[] = [
 export const useGridStore = create<GridState>((set) => ({
   gridItems: initialGridItems,
   pendingCommand: null,
+  selectedWidgetId: null,
   setGridItems: (items) => set({ gridItems: items }),
   addCommand: (command) => set({ pendingCommand: command }),
   clearCommand: () => set({ pendingCommand: null }),
+  selectWidget: (id) => set({ selectedWidgetId: id }),
 }));
