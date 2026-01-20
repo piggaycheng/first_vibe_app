@@ -5,7 +5,7 @@ import { useGridStore } from '../store/useGridStore';
 import { useUIStore } from '../store/useUIStore';
 
 export default function GridDashboard() {
-  const { gridItems, setGridItems, pendingCommand, clearCommand, selectedWidgetId } = useGridStore();
+  const { gridItems, setGridItems, pendingCommand, clearCommand, selectedWidgetId, selectWidget } = useGridStore();
   const isEditMode = useUIStore((state) => state.isEditMode);
   const gridRef = useRef<GridStack | null>(null);
 
@@ -15,6 +15,17 @@ export default function GridDashboard() {
       gridRef.current.setStatic(!isEditMode);
     }
   }, [isEditMode]);
+
+  // Global Escape Key Listener (Cancel Selection)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        selectWidget(null);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectWidget]);
 
   // Selection & Scroll Sync
   useEffect(() => {
@@ -186,7 +197,18 @@ export default function GridDashboard() {
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    // If clicking on the root container or empty space, and NOT on a widget
+    const target = e.target as HTMLElement;
+    if (!target.closest('.grid-stack-item')) {
+      selectWidget(null);
+    }
+  };
+
   return (
-    <div className={`grid-stack grid-stack-root ${isEditMode ? 'edit-mode' : ''}`}></div>
+    <div 
+      className={`grid-stack grid-stack-root ${isEditMode ? 'edit-mode' : ''}`}
+      onClick={handleBackgroundClick}
+    ></div>
   );
 }

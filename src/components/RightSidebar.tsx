@@ -18,6 +18,7 @@ interface RightSidebarProps {
 
 export default function RightSidebar({ open, width }: RightSidebarProps) {
   const gridItems = useGridStore((state) => state.gridItems);
+  const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
   const addCommand = useGridStore((state) => state.addCommand);
   const selectWidget = useGridStore((state) => state.selectWidget);
   const isEditMode = useUIStore((state) => state.isEditMode);
@@ -60,6 +61,14 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
         </Typography>
         <Tree
           data={treeData}
+          selection={selectedWidgetId}
+          onSelect={(nodes) => {
+            if (nodes.length > 0) {
+              selectWidget(nodes[0].id);
+            } else {
+              selectWidget(null);
+            }
+          }}
           openByDefault={true}
           width={width - 16}
           height={600}
@@ -85,8 +94,7 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
                 className={`node-container ${node.isSelected ? 'selected' : ''}`} 
                 onClick={() => {
                   node.toggle();
-                  node.select();
-                  selectWidget(node.id);
+                  // selection is now handled by the Tree's selection/onSelect props
                 }}
               >
                 <div className="node-content" style={{ display: 'flex', alignItems: 'center', flexGrow: 1, overflow: 'hidden' }}>
