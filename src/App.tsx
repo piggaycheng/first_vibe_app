@@ -25,7 +25,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
 
 // 引入 Gridstack 及其樣式
-import { GridStack } from 'gridstack';
+import { GridStack, type GridStackOptions } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
 
 const drawerWidth = 240;
@@ -82,18 +82,20 @@ function App() {
         minRow: 1, // 確保至少有一行
         acceptWidgets: true, // 允許接受拖入的 widget
         dragIn: '.new-widget', // 如果有外部拖入的需求
+        float: true, // 允許浮動
         subGridOpts: {
-           cellHeight: 80, // sub-grid 的高度可以不同
-           margin: 5,
-           acceptWidgets: true // sub-grid 也接受 widgets
+          cellHeight: 80, // sub-grid 的高度可以不同
+          margin: 5,
+          acceptWidgets: true, // sub-grid 也接受 widgets
+          float: true // 允許浮動
         }
-      } as any, '.grid-stack-root'); // 指定一個 root class
+      } as GridStackOptions, '.grid-stack-root'); // 指定一個 root class
 
       // 載入預設的巢狀結構
       const widgets = [
         { x: 0, y: 0, w: 4, h: 4, content: 'Regular Widget' },
-        { 
-          x: 4, y: 0, w: 8, h: 6, 
+        {
+          x: 4, y: 0, w: 8, h: 6,
           // content: 'Container Widget (Drop items here)',
           subGridOpts: {
             children: [
@@ -104,7 +106,7 @@ function App() {
           }
         },
       ];
-      
+
       gridRef.current.load(widgets);
     }
   }, []);
@@ -117,15 +119,15 @@ function App() {
 
   const addNestedWidget = () => {
     if (gridRef.current) {
-       // 新增一個帶有 subGrid 的 widget
-       gridRef.current.addWidget({
+      // 新增一個帶有 subGrid 的 widget
+      gridRef.current.addWidget({
         w: 6, h: 6,
         subGridOpts: {
-            children: [
-                { x: 0, y: 0, w: 2, h: 2, content: 'Sub Item 1' }
-            ]
+          children: [
+            { x: 0, y: 0, w: 2, h: 2, content: 'Sub Item 1' }
+          ]
         }
-       });
+      });
     }
   };
 
@@ -148,7 +150,7 @@ function App() {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      
+
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
@@ -215,11 +217,11 @@ function App() {
       </Drawer>
 
       <Main open={open} rightOpen={rightOpen}>
-        <Toolbar /> 
-        
+        <Toolbar />
+
         <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
-            {/* 給予一個特定的 class name 作為 root */}
-           <div className="grid-stack grid-stack-root"></div>
+          {/* 給予一個特定的 class name 作為 root */}
+          <div className="grid-stack grid-stack-root"></div>
         </Box>
       </Main>
 
