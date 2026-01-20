@@ -115,13 +115,14 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
 }));
 
 function App() {
-  const { 
-    leftSidebarOpen: open, 
-    rightSidebarOpen: rightOpen, 
+  const {
+    leftSidebarOpen: open,
+    rightSidebarOpen: rightOpen,
     isEditMode,
     themeMode,
-    toggleLeftSidebar: handleDrawerToggle, 
+    toggleLeftSidebar: handleDrawerToggle,
     toggleRightSidebar: handleRightDrawerToggle,
+    setRightSidebar,
     toggleEditMode,
     toggleTheme
   } = useUIStore();
@@ -141,9 +142,15 @@ function App() {
     setAnchorElUser(null);
   };
 
+  const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
+
   useEffect(() => {
-    loadLayout();
-  }, [loadLayout]);
+    if (isDashboard) {
+      loadLayout();
+    } else {
+      setRightSidebar(false);
+    }
+  }, [isDashboard, loadLayout, setRightSidebar]);
 
   const theme = useMemo(
     () =>
@@ -151,27 +158,27 @@ function App() {
         palette: {
           mode: themeMode,
           primary: {
-             main: '#1976d2',
+            main: '#1976d2',
           },
           ...(themeMode === 'dark' && {
-             background: {
-               default: '#121212',
-               paper: '#1e1e1e',
-             }
+            background: {
+              default: '#121212',
+              paper: '#1e1e1e',
+            }
           })
         },
       }),
     [themeMode]
   );
-  
+
   const addWidget = () => {
     addCommand({
       type: 'ADD_WIDGET',
       payload: {
-        widgetOptions: { 
-          w: 3, h: 2, 
-          content: 'New Widget', 
-          id: `new-${Date.now()}` 
+        widgetOptions: {
+          w: 3, h: 2,
+          content: 'New Widget',
+          id: `new-${Date.now()}`
         }
       }
     });
@@ -208,7 +215,17 @@ function App() {
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
 
-        <AppBar position="fixed" open={open} color="default">
+        <AppBar
+          position="fixed"
+          open={open}
+          color="default"
+          elevation={0}
+          sx={{
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            zIndex: (theme) => theme.zIndex.drawer + 1
+          }}
+        >
           <Toolbar>
             <IconButton
               color="inherit"
@@ -222,48 +239,52 @@ function App() {
             <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
               Nested Gridstack Dashboard
             </Typography>
-            
+
             <Box sx={{ flexGrow: 1 }} />
 
-            <Tooltip title={isEditMode ? "Switch to View Mode" : "Switch to Edit Mode"}>
-              <Button 
-                color="inherit" 
-                onClick={toggleEditMode}
-                startIcon={isEditMode ? <VisibilityIcon /> : <DesignServicesIcon />} 
-                sx={{ mr: 2, border: '1px solid rgba(128,128,128,0.3)' }}
-              >
-                {isEditMode ? "Editing" : "Viewing"}
-              </Button>
-            </Tooltip>
-
-            {isEditMode && (
+            {isDashboard && (
               <>
-                <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget} sx={{ mr: 1 }}>
-                  Add Item
-                </Button>
-                <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
-                  Add Nested
-                </Button>
-                <Button color="inherit" startIcon={<SaveIcon />} onClick={saveLayout}>
-                  Save
-                </Button>
-                <Button color="inherit" startIcon={<RestoreIcon />} onClick={() => loadLayout()}>
-                  Load
-                </Button>
-                <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout}>
-                  Export JSON
-                </Button>
+                {isEditMode ? (
+                  <>
+                    <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget} sx={{ mr: 1 }}>
+                      Add Item
+                    </Button>
+                    <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
+                      Add Nested
+                    </Button>
+                    <Button color="inherit" startIcon={<SaveIcon />} onClick={saveLayout}>
+                      Save
+                    </Button>
+                    <Button color="inherit" startIcon={<RestoreIcon />} onClick={() => loadLayout()}>
+                      Load
+                    </Button>
+                    <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout} sx={{ mr: 1 }}>
+                      Export JSON
+                    </Button>
+                  </>
+                ) : null}
+
+                <Tooltip title={isEditMode ? "Switch to View Mode" : "Switch to Edit Mode"}>
+                  <Button
+                    color="inherit"
+                    onClick={toggleEditMode}
+                    startIcon={isEditMode ? <VisibilityIcon /> : <DesignServicesIcon />}
+                    sx={{ mr: 2, border: '1px solid rgba(128,128,128,0.3)' }}
+                  >
+                    {isEditMode ? "Editing" : "Viewing"}
+                  </Button>
+                </Tooltip>
+
+                <IconButton
+                  color="inherit"
+                  aria-label="open right drawer"
+                  onClick={handleRightDrawerToggle}
+                  sx={{ ml: 1 }}
+                >
+                  <AccountTreeIcon />
+                </IconButton>
               </>
             )}
-
-            <IconButton
-              color="inherit"
-              aria-label="open right drawer"
-              onClick={handleRightDrawerToggle}
-              sx={{ ml: 1 }}
-            >
-              <AccountTreeIcon />
-            </IconButton>
 
             <Divider orientation="vertical" variant="middle" flexItem sx={{ mx: 1.5, height: '24px', alignSelf: 'center' }} />
 
@@ -326,7 +347,7 @@ function App() {
           <List sx={{ flexGrow: 1 }}>
             {menuItems.map((item) => (
               <ListItem key={item.text} disablePadding>
-                <ListItemButton 
+                <ListItemButton
                   selected={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
                 >
@@ -338,7 +359,7 @@ function App() {
               </ListItem>
             ))}
           </List>
-          
+
           <Divider />
           <List>
             <ListItem disablePadding>
@@ -347,11 +368,11 @@ function App() {
                   {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                 </ListItemIcon>
                 <ListItemText primary={themeMode === 'dark' ? "Light Mode" : "Dark Mode"} />
-                <Switch 
-                  checked={themeMode === 'dark'} 
-                  onChange={toggleTheme} 
+                <Switch
+                  checked={themeMode === 'dark'}
+                  onChange={toggleTheme}
                   onClick={(e) => e.stopPropagation()}
-                  inputProps={{ 'aria-label': 'toggle theme' }} 
+                  inputProps={{ 'aria-label': 'toggle theme' }}
                   size="small"
                 />
               </ListItemButton>
