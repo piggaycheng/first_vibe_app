@@ -25,7 +25,9 @@ import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import HomeIcon from '@mui/icons-material/Home';
+import InfoIcon from '@mui/icons-material/Info';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
@@ -274,9 +276,15 @@ function App() {
               onClose={handleCloseUserMenu}
             >
               <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/grid-management'); }}>
+                <ListItemIcon>
+                  <DashboardIcon fontSize="small" />
+                </ListItemIcon>
                 <Typography textAlign="center">Grid Management</Typography>
               </MenuItem>
               <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/settings'); }}>
+                <ListItemIcon>
+                  <InfoIcon fontSize="small" />
+                </ListItemIcon>
                 <Typography textAlign="center">Settings</Typography>
               </MenuItem>
             </Menu>
