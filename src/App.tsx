@@ -113,7 +113,7 @@ function App() {
 
   const addWidget = () => {
     if (gridRef.current) {
-      gridRef.current.addWidget({ w: 3, h: 2, content: 'New Widget' });
+      gridRef.current.addWidget({ w: 3, h: 2, content: 'New Widget', id: `new-${Date.now()}` });
     }
   };
 
@@ -122,9 +122,10 @@ function App() {
       // 新增一個帶有 subGrid 的 widget
       gridRef.current.addWidget({
         w: 6, h: 6,
+        id: `nested-container-${Date.now()}`,
         subGridOpts: {
           children: [
-            { x: 0, y: 0, w: 2, h: 2, content: 'Sub Item 1' }
+            { x: 0, y: 0, w: 2, h: 2, content: 'Sub Item 1', id: `sub-${Date.now()}` }
           ]
         }
       });
