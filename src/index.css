@@ -42,7 +42,6 @@ body {
 /* 針對 Nested Grid 的特定樣式 */
 /* 當 item 內部是一個 grid 時 (Nested Grid Container) */
 .grid-stack-item-content .grid-stack {
-    background-color: rgba(0, 0, 0, 0.05);
     margin: 5px; 
     /* 
        這裡非常重要：
@@ -54,6 +53,21 @@ body {
     overflow-y: auto; 
     padding: 10px; /* 增加內距，避免內容貼邊 */
     border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+/* Edit mode styles for both root and nested grids */
+.edit-mode.grid-stack-root,
+.edit-mode .grid-stack-item-content .grid-stack {
+    background: #f4f6f8;
+    border: 1px dashed #ccc;
+}
+
+/* View mode - ensure background is clear */
+.grid-stack-root:not(.edit-mode),
+.grid-stack-root:not(.edit-mode) .grid-stack-item-content .grid-stack {
+    background: transparent;
+    border: 1px solid transparent;
 }
 
 /* 確保 grid 內的 items 不會被莫名其妙的 z-index 蓋住 */
