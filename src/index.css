@@ -11,10 +11,13 @@ body {
 
 /* Root Grid Background */
 .grid-stack-root {
-    background: #f4f6f8;
-    border: 1px dashed #ccc;
     min-height: 500px;
     padding: 10px; /* 給最外層一點內距 */
+}
+
+.edit-mode.grid-stack-root {
+    background: #f4f6f8;
+    border: 1px dashed #ccc;
 }
 
 /* Gridstack Widget Content Styles */

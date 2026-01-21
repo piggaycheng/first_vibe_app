@@ -3,7 +3,7 @@ import { Drawer, Box, Typography } from '@mui/material';
 import { Tree, NodeApi } from 'react-arborist';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import DashboardIcon from '@mui/icons-material/Dashboard';
+import WidgetsIcon from '@mui/icons-material/Widgets';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { IconButton } from '@mui/material';
 import '../assets/css/RightSidebar.css';
@@ -84,7 +84,7 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
           {({ node, style, dragHandle }: { node: NodeApi<any>, style: React.CSSProperties, dragHandle?: any }) => {
              // Determine Icon
              const Icon = node.isLeaf 
-               ? DashboardIcon 
+               ? WidgetsIcon 
                : (node.isOpen ? FolderOpenIcon : FolderIcon);
 
              return (
