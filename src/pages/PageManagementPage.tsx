@@ -1,21 +1,75 @@
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Button, Breadcrumbs, Link } from '@mui/material';
+import { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  IconButton,
+  Button,
+  Breadcrumbs,
+  Link,
+  Switch,
+  Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
+} from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import HomeIcon from '@mui/icons-material/Home';
+import FolderIcon from '@mui/icons-material/Folder';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNavigate } from 'react-router-dom';
+import { Tree, NodeApi } from 'react-arborist';
+
+// Data Structure
+interface PageNode {
+  id: string;
+  name: string;
+  path: string;
+  visible: boolean;
+  children?: PageNode[];
+}
+
+const initialData: PageNode[] = [
+  {
+    id: '1',
+    name: 'Main Menu',
+    path: '-',
+    visible: true,
+    children: [
+      { id: '1-1', name: 'Dashboard', path: '/', visible: true },
+      { id: '1-2', name: 'Analytics', path: '/analytics', visible: true },
+    ]
+  },
+  {
+    id: '2',
+    name: 'System Settings',
+    path: '/settings',
+    visible: true,
+  }
+];
 
 export default function PageManagementPage() {
   const navigate = useNavigate();
+  const [data, setData] = useState(initialData);
 
-  // Mock data for current pages in sidebar
-  const pages = [
-    { id: 1, name: 'Dashboard', path: '/', icon: 'HomeIcon', visible: true },
-    { id: 2, name: 'Analytics', path: '/analytics', icon: 'ContactMailIcon', visible: true },
-  ];
+  // Define column widths to ensure alignment between Header and Body
+  const widthConfig = {
+    name: '40%',
+    path: '30%',
+    status: '15%',
+    actions: '15%'
+  };
 
   return (
-    <Box>
+    <Box sx={{ p: 1 }}>
       <Box sx={{ mb: 3 }}>
         <Breadcrumbs aria-label="breadcrumb">
           <Link
@@ -29,54 +83,146 @@ export default function PageManagementPage() {
           </Link>
           <Typography color="text.primary">Page Management</Typography>
         </Breadcrumbs>
-        <Typography variant="h4" sx={{ mt: 2, fontWeight: 'bold' }}>
-          Page Management
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage the pages displayed in the left sidebar menu.
-        </Typography>
-      </Box>
-
-      <Paper sx={{ width: '100%', mb: 2, p: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <Button variant="contained" startIcon={<AddIcon />}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              Page Management
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Manage your site structure with drag-and-drop support.
+            </Typography>
+          </Box>
+          <Button variant="contained" startIcon={<AddIcon />} size="large">
             Add New Page
           </Button>
         </Box>
-        
+      </Box>
+
+      <Paper sx={{ width: '100%', overflow: 'hidden' }} elevation={2}>
+        {/* MUI Table Header */}
         <TableContainer>
-          <Table sx={{ minWidth: 650 }} aria-label="page management table">
+          <Table size="medium">
             <TableHead>
               <TableRow>
-                <TableCell>Page Name</TableCell>
-                <TableCell>Path</TableCell>
-                <TableCell>Icon</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell sx={{ width: widthConfig.name, pl: 4, fontWeight: 'bold' }}>PAGE NAME</TableCell>
+                <TableCell sx={{ width: widthConfig.path, fontWeight: 'bold' }}>PATH</TableCell>
+                <TableCell sx={{ width: widthConfig.status, fontWeight: 'bold' }}>VISIBILITY</TableCell>
+                <TableCell align="right" sx={{ width: widthConfig.actions, fontWeight: 'bold', pr: 4 }}>ACTIONS</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {pages.map((page) => (
-                <TableRow key={page.id} hover>
-                  <TableCell component="th" scope="row">
-                    {page.name}
-                  </TableCell>
-                  <TableCell>{page.path}</TableCell>
-                  <TableCell>{page.icon}</TableCell>
-                  <TableCell>{page.visible ? 'Visible' : 'Hidden'}</TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" color="primary">
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" color="error">
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Tree Body - mimicking TableRow */}
+        <Box sx={{ height: 600 }}>
+          <Tree
+            data={data}
+            onMove={({ dragIds, parentId, index }) => {
+              console.log('Moved', dragIds, 'to parent', parentId, 'at index', index);
+            }}
+            width="100%"
+            height={600}
+            rowHeight={60} // Matches standard TableRow height
+            indent={24}
+            padding={0}
+          >
+            {({ node, style, dragHandle }: { node: NodeApi<PageNode>, style: React.CSSProperties, dragHandle?: any }) => (
+              <div style={{ ...style, paddingLeft: 0, height: '100%' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: '100%', // Ensure consistent height
+                    width: '100%',
+                    borderBottom: '1px solid rgba(224, 224, 224, 1)',
+                    boxSizing: 'border-box',
+                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
+                    transition: 'background-color 0.2s',
+                  }}
+                >
+                  {/* Name Column */}
+                  <Box sx={{ width: widthConfig.name, display: 'flex', alignItems: 'center', pl: 2, boxSizing: 'border-box', overflow: 'hidden' }}>
+                    {/* Drag Handle - Fixed position, no indent */}
+                    <Box
+                      ref={dragHandle}
+                      sx={{
+                        cursor: 'grab',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: 'action.active',
+                        mr: 1,
+                        minWidth: 24, // Fixed width for alignment
+                        opacity: 0.5,
+                        '&:hover': { opacity: 1 }
+                      }}
+                    >
+                      <DragIndicatorIcon />
+                    </Box>
+
+                    {/* Indentation Area - Only pushes the content after Drag Handle */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                      {/* Indentation Spacer */}
+                      <Box sx={{ width: node.level * 24, flexShrink: 0 }} />
+
+                      {/* Toggle Icon */}
+                      <Box
+                        onClick={(e) => { e.stopPropagation(); node.toggle(); }}
+                        sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', mr: 1, width: 24, justifyContent: 'center', flexShrink: 0 }}
+                      >
+                        {!node.isLeaf && (
+                          node.isOpen ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />
+                        )}
+                      </Box>
+
+                      {/* Type Icon */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', mr: 1, flexShrink: 0 }}>
+                        {node.isLeaf ? (
+                          <InsertDriveFileIcon color="action" fontSize="small" />
+                        ) : (
+                          <FolderIcon color="action" fontSize="small" />
+                        )}
+                      </Box>
+
+                      <Typography variant="body2" sx={{ fontWeight: node.isLeaf ? 400 : 500, noWrap: true }}>
+                        {node.data.name}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Path Column */}
+                  <Box sx={{ width: widthConfig.path, px: 2, boxSizing: 'border-box' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                      {node.data.path}
+                    </Typography>
+                  </Box>
+
+                  {/* Status Column */}
+                  <Box sx={{ width: widthConfig.status, px: 2, boxSizing: 'border-box' }}>
+                    <Switch
+                      checked={node.data.visible}
+                      size="small"
+                      color="success"
+                    />
+                  </Box>
+
+                  {/* Actions Column */}
+                  <Box sx={{ width: widthConfig.actions, pr: 4, textAlign: 'right', boxSizing: 'border-box' }}>
+                    <Tooltip title="Edit">
+                      <IconButton size="small">
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton size="small" color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              </div>
+            )}
+          </Tree>
+        </Box>
       </Paper>
     </Box>
   );
