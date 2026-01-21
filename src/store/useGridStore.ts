@@ -16,10 +16,12 @@ interface GridState {
   gridItems: GridStackWidget[];
   pendingCommand: GridCommand | null;
   selectedWidgetId: string | null;
+  lastLoadedLayoutId: string | null;
   setGridItems: (items: GridStackWidget[]) => void;
   addCommand: (command: GridCommand) => void;
   clearCommand: () => void;
   selectWidget: (id: string | null) => void;
+  setLastLoadedLayoutId: (id: string | null) => void;
 }
 
 const initialGridItems: GridStackWidget[] = [
@@ -42,8 +44,10 @@ export const useGridStore = create<GridState>((set) => ({
   gridItems: initialGridItems,
   pendingCommand: null,
   selectedWidgetId: null,
+  lastLoadedLayoutId: null,
   setGridItems: (items) => set({ gridItems: items }),
   addCommand: (command) => set({ pendingCommand: command }),
   clearCommand: () => set({ pendingCommand: null }),
   selectWidget: (id) => set({ selectedWidgetId: id }),
+  setLastLoadedLayoutId: (id) => set({ lastLoadedLayoutId: id }),
 }));

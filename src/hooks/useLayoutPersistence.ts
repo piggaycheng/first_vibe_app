@@ -7,6 +7,7 @@ export function useLayoutPersistence() {
   const gridItems = useGridStore((state) => state.gridItems);
   const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
   const addCommand = useGridStore((state) => state.addCommand);
+  const setLastLoadedLayoutId = useGridStore((state) => state.setLastLoadedLayoutId);
 
   const saveLayout = useCallback(async () => {
     try {
@@ -52,11 +53,13 @@ export function useLayoutPersistence() {
   const loadLayout = useCallback(async (specificLayout?: Layout) => {
     try {
       let items = specificLayout?.items;
+      let layoutId = specificLayout?.id;
       
       if (!items) {
         // Fallback to loading the most recent one if no specific layout provided
         const latest = await db.layouts.orderBy('updatedAt').reverse().first();
         items = latest?.items;
+        layoutId = latest?.id;
       }
 
       if (items) {
@@ -66,11 +69,14 @@ export function useLayoutPersistence() {
             widgetOptions: items
           }
         });
+        if (layoutId) {
+          setLastLoadedLayoutId(layoutId);
+        }
       }
     } catch (error) {
       console.error('Failed to load layout:', error);
     }
-  }, [addCommand]);
+  }, [addCommand, setLastLoadedLayoutId]);
 
   const deleteLayout = useCallback(async (id: string) => {
     try {

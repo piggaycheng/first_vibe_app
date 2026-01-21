@@ -132,6 +132,7 @@ function App() {
   const location = useLocation();
   const { saveLayout, saveSelectedLayout, loadLayout } = useLayoutPersistence();
   const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
+  const lastLoadedLayoutId = useGridStore((state) => state.lastLoadedLayoutId);
 
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
 
@@ -147,11 +148,13 @@ function App() {
 
   useEffect(() => {
     if (isDashboard) {
-      loadLayout();
+      if (!lastLoadedLayoutId) {
+        loadLayout();
+      }
     } else {
       setRightSidebar(false);
     }
-  }, [isDashboard, loadLayout, setRightSidebar]);
+  }, [isDashboard, loadLayout, setRightSidebar, lastLoadedLayoutId]);
 
   const theme = useMemo(
     () =>
@@ -261,9 +264,6 @@ function App() {
                         Save Selection
                       </Button>
                     )}
-                    <Button color="inherit" startIcon={<RestoreIcon />} onClick={() => loadLayout()}>
-                      Load
-                    </Button>
                     <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout} sx={{ mr: 1 }}>
                       Export JSON
                     </Button>
