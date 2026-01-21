@@ -37,7 +37,7 @@ import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import WebIcon from '@mui/icons-material/Web';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import RightSidebar from './components/RightSidebar';
 import DashboardPage from './pages/DashboardPage';
@@ -347,7 +347,7 @@ function App() {
             >
               <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/page-management'); }}>
                 <ListItemIcon>
-                  <AutoFixHighIcon fontSize="small" />
+                  <WebIcon fontSize="small" />
                 </ListItemIcon>
                 <Typography textAlign="center">Page Management</Typography>
               </MenuItem>
