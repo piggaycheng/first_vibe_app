@@ -37,12 +37,14 @@ import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import RightSidebar from './components/RightSidebar';
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import GridManagementPage from './pages/GridManagementPage';
+import PageManagementPage from './pages/PageManagementPage';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
 import './App.css';
@@ -343,6 +345,12 @@ function App() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
+              <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/page-management'); }}>
+                <ListItemIcon>
+                  <AutoFixHighIcon fontSize="small" />
+                </ListItemIcon>
+                <Typography textAlign="center">Page Management</Typography>
+              </MenuItem>
               <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/grid-management'); }}>
                 <ListItemIcon>
                   <DashboardIcon fontSize="small" />
@@ -425,6 +433,7 @@ function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/grid-management" element={<GridManagementPage />} />
+              <Route path="/page-management" element={<PageManagementPage />} />
             </Routes>
           </Box>
         </Main>
