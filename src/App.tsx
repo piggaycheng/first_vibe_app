@@ -278,10 +278,10 @@ function App() {
             <Box sx={{ flexGrow: 1 }} />
 
             {isDashboard && (
-              <>
-                {isEditMode ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {isEditMode && (
                   <>
-                    <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget} sx={{ mr: 1 }}>
+                    <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget}>
                       Add Item
                     </Button>
                     <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
@@ -295,18 +295,18 @@ function App() {
                         Save Selection
                       </Button>
                     )}
-                    <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout} sx={{ mr: 1 }}>
+                    <Button color="inherit" startIcon={<DownloadIcon />} onClick={handleExportLayout}>
                       Export JSON
                     </Button>
                   </>
-                ) : null}
+                )}
 
                 <Tooltip title={isEditMode ? "Switch to View Mode" : "Switch to Edit Mode"}>
                   <Button
                     color="inherit"
                     onClick={toggleEditMode}
                     startIcon={isEditMode ? <VisibilityIcon /> : <DesignServicesIcon />}
-                    sx={{ mr: 2, border: '1px solid rgba(128,128,128,0.3)' }}
+                    sx={{ border: '1px solid rgba(128,128,128,0.3)', whiteSpace: 'nowrap' }}
                   >
                     {isEditMode ? "Editing" : "Viewing"}
                   </Button>
@@ -316,11 +316,10 @@ function App() {
                   color="inherit"
                   aria-label="open right drawer"
                   onClick={handleRightDrawerToggle}
-                  sx={{ ml: 1 }}
                 >
                   <AccountTreeIcon />
                 </IconButton>
-              </>
+              </Box>
             )}
 
             <Divider orientation="vertical" variant="middle" flexItem sx={{ mx: 1.5, height: '24px', alignSelf: 'center' }} />
