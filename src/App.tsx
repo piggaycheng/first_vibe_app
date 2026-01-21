@@ -50,7 +50,6 @@ import { useGridStore } from './store/useGridStore';
 import './App.css';
 import { useMemo, useEffect, useState } from 'react';
 import SaveIcon from '@mui/icons-material/Save';
-import RestoreIcon from '@mui/icons-material/Restore';
 import { useLayoutPersistence } from './hooks/useLayoutPersistence';
 import SaveLayoutDialog from './components/SaveLayoutDialog';
 

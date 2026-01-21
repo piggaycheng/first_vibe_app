@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -73,7 +73,6 @@ export default function SaveLayoutDialog({
             quality: 0.9,
             backgroundColor: '#ffffff',
             skipFonts: true,
-            styleCache: {},
             cacheBust: true,
             // 只需要一點點 padding 避免內容太貼邊
             style: {

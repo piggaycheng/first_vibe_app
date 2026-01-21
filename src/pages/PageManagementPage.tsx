@@ -10,7 +10,6 @@ import {
   Switch,
   Tooltip,
   Table,
-  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -121,7 +120,7 @@ export default function PageManagementPage() {
               setData(prevData => {
                 const newData = JSON.parse(JSON.stringify(prevData)) as PageNode[];
                 let movedNode: PageNode | null = null;
-                
+
                 // Helper to remove node
                 const removeNode = (nodes: PageNode[], id: string): boolean => {
                   const i = nodes.findIndex(n => n.id === id);
@@ -156,7 +155,7 @@ export default function PageManagementPage() {
                     }
                     return undefined;
                   };
-                  
+
                   const parent = findNode(newData, parentId);
                   if (parent) {
                     if (!parent.children) parent.children = [];
@@ -173,7 +172,7 @@ export default function PageManagementPage() {
             padding={0}
           >
             {({ node, style, dragHandle }: { node: NodeApi<PageNode>, style: React.CSSProperties, dragHandle?: any }) => (
-              <div style={{ ...style, paddingLeft: 0, height: '100%' }}>
+              <div style={{ ...style, paddingLeft: 0, transition: 'all 0.2s ease-out', height: '100%' }}>
                 <Box
                   sx={{
                     display: 'flex',
@@ -229,7 +228,7 @@ export default function PageManagementPage() {
                         )}
                       </Box>
 
-                      <Typography variant="body2" sx={{ fontWeight: node.isLeaf ? 400 : 500, noWrap: true }}>
+                      <Typography variant="body2" noWrap sx={{ fontWeight: node.isLeaf ? 400 : 500 }}>
                         {node.data.name}
                       </Typography>
                     </Box>
