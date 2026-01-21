@@ -83,3 +83,8 @@ body {
    justify-content: center;
    width: 100%; /* 確保文字容器寬度正確 */
 }
+
+/* React Arborist Tree Row Transition */
+.tree-row {
+    transition: all 0.2s ease-out;
+}

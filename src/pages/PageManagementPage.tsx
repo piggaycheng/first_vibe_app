@@ -170,9 +170,10 @@ export default function PageManagementPage() {
             rowHeight={60} // Matches standard TableRow height
             indent={24}
             padding={0}
+            rowClassName="tree-row"
           >
             {({ node, style, dragHandle }: { node: NodeApi<PageNode>, style: React.CSSProperties, dragHandle?: any }) => (
-              <div style={{ ...style, paddingLeft: 0, transition: 'all 0.2s ease-out', height: '100%' }}>
+              <div style={{ ...style, paddingLeft: 0, height: '100%' }}>
                 <Box
                   sx={{
                     display: 'flex',
