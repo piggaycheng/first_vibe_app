@@ -118,7 +118,53 @@ export default function PageManagementPage() {
           <Tree
             data={data}
             onMove={({ dragIds, parentId, index }) => {
-              console.log('Moved', dragIds, 'to parent', parentId, 'at index', index);
+              setData(prevData => {
+                const newData = JSON.parse(JSON.stringify(prevData)) as PageNode[];
+                let movedNode: PageNode | null = null;
+                
+                // Helper to remove node
+                const removeNode = (nodes: PageNode[], id: string): boolean => {
+                  const i = nodes.findIndex(n => n.id === id);
+                  if (i !== -1) {
+                    movedNode = nodes[i];
+                    nodes.splice(i, 1);
+                    return true;
+                  }
+                  for (const node of nodes) {
+                    if (node.children && removeNode(node.children, id)) return true;
+                  }
+                  return false;
+                };
+
+                // 1. Remove the node (handling single selection for now)
+                const id = dragIds[0];
+                removeNode(newData, id);
+
+                if (!movedNode) return prevData;
+
+                // 2. Insert the node
+                if (parentId === null) {
+                  newData.splice(index, 0, movedNode);
+                } else {
+                  const findNode = (nodes: PageNode[], targetId: string): PageNode | undefined => {
+                    for (const node of nodes) {
+                      if (node.id === targetId) return node;
+                      if (node.children) {
+                        const found = findNode(node.children, targetId);
+                        if (found) return found;
+                      }
+                    }
+                    return undefined;
+                  };
+                  
+                  const parent = findNode(newData, parentId);
+                  if (parent) {
+                    if (!parent.children) parent.children = [];
+                    parent.children.splice(index, 0, movedNode);
+                  }
+                }
+                return newData;
+              });
             }}
             width="100%"
             height={600}
