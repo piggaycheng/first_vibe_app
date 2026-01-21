@@ -130,7 +130,8 @@ function App() {
   const addCommand = useGridStore((state) => state.addCommand);
   const navigate = useNavigate();
   const location = useLocation();
-  const { saveLayout, loadLayout } = useLayoutPersistence();
+  const { saveLayout, saveSelectedLayout, loadLayout } = useLayoutPersistence();
+  const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
 
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
 
@@ -255,6 +256,11 @@ function App() {
                     <Button color="inherit" startIcon={<SaveIcon />} onClick={saveLayout}>
                       Save
                     </Button>
+                    {selectedWidgetId && (
+                      <Button color="inherit" startIcon={<SaveIcon />} onClick={saveSelectedLayout} sx={{ color: 'primary.main' }}>
+                        Save Selection
+                      </Button>
+                    )}
                     <Button color="inherit" startIcon={<RestoreIcon />} onClick={() => loadLayout()}>
                       Load
                     </Button>

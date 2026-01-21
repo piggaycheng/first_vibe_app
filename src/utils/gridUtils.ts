@@ -38,3 +38,17 @@ export const transformGridToTree = (widgets: GridStackWidget[]): TreeNode[] => {
     return node;
   });
 };
+
+/**
+ * 遞迴尋找指定的 Widget
+ */
+export const findWidgetById = (widgets: GridStackWidget[], id: string): GridStackWidget | null => {
+  for (const widget of widgets) {
+    if (widget.id === id) return widget;
+    if (widget.subGridOpts?.children) {
+      const found = findWidgetById(widget.subGridOpts.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};

@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { useGridStore } from '../store/useGridStore';
 import { db, type Layout } from '../db';
+import { findWidgetById } from '../utils/gridUtils';
 
 export function useLayoutPersistence() {
   const gridItems = useGridStore((state) => state.gridItems);
+  const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
   const addCommand = useGridStore((state) => state.addCommand);
 
   const saveLayout = useCallback(async () => {
@@ -20,6 +22,32 @@ export function useLayoutPersistence() {
       console.error('Failed to save layout:', error);
     }
   }, [gridItems]);
+
+  const saveSelectedLayout = useCallback(async () => {
+    if (!selectedWidgetId) {
+      console.warn('No widget selected to save');
+      return;
+    }
+
+    const selectedWidget = findWidgetById(gridItems, selectedWidgetId);
+    if (!selectedWidget) {
+      console.error('Selected widget not found in current items');
+      return;
+    }
+
+    try {
+      const timestamp = new Date();
+      await db.layouts.add({
+        id: crypto.randomUUID(),
+        name: `Selection: ${selectedWidget.id} ${timestamp.toLocaleString()}`,
+        items: [selectedWidget],
+        updatedAt: timestamp
+      });
+      console.log('Selected layout saved successfully');
+    } catch (error) {
+      console.error('Failed to save selected layout:', error);
+    }
+  }, [gridItems, selectedWidgetId]);
 
   const loadLayout = useCallback(async (specificLayout?: Layout) => {
     try {
@@ -52,5 +80,5 @@ export function useLayoutPersistence() {
     }
   }, []);
 
-  return { saveLayout, loadLayout, deleteLayout };
+  return { saveLayout, saveSelectedLayout, loadLayout, deleteLayout };
 }
