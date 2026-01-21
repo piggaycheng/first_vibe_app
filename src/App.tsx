@@ -50,6 +50,7 @@ import { useMemo, useEffect, useState } from 'react';
 import SaveIcon from '@mui/icons-material/Save';
 import RestoreIcon from '@mui/icons-material/Restore';
 import { useLayoutPersistence } from './hooks/useLayoutPersistence';
+import SaveLayoutDialog from './components/SaveLayoutDialog';
 
 const drawerWidth = 240;
 const rightDrawerWidth = 240;
@@ -135,6 +136,23 @@ function App() {
   const lastLoadedLayoutId = useGridStore((state) => state.lastLoadedLayoutId);
 
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  
+  // Save Dialog State
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveType, setSaveType] = useState<'all' | 'selected'>('all');
+
+  const handleOpenSaveDialog = (type: 'all' | 'selected') => {
+    setSaveType(type);
+    setSaveDialogOpen(true);
+  };
+
+  const handleConfirmSave = (name: string) => {
+    if (saveType === 'all') {
+      saveLayout(name);
+    } else {
+      saveSelectedLayout(name);
+    }
+  };
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -256,11 +274,11 @@ function App() {
                     <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
                       Add Nested
                     </Button>
-                    <Button color="inherit" startIcon={<SaveIcon />} onClick={saveLayout}>
+                    <Button color="inherit" startIcon={<SaveIcon />} onClick={() => handleOpenSaveDialog('all')}>
                       Save
                     </Button>
                     {selectedWidgetId && (
-                      <Button color="inherit" startIcon={<SaveIcon />} onClick={saveSelectedLayout} sx={{ color: 'primary.main' }}>
+                      <Button color="inherit" startIcon={<SaveIcon />} onClick={() => handleOpenSaveDialog('selected')} sx={{ color: 'primary.main' }}>
                         Save Selection
                       </Button>
                     )}
@@ -401,6 +419,14 @@ function App() {
 
         <RightSidebar open={rightOpen} width={rightDrawerWidth} />
       </Box>
+
+      <SaveLayoutDialog
+        open={saveDialogOpen}
+        onClose={() => setSaveDialogOpen(false)}
+        onSave={handleConfirmSave}
+        title={saveType === 'all' ? 'Save Layout' : 'Save Selected Widget'}
+        defaultName={saveType === 'all' ? `Layout ${new Date().toLocaleString()}` : `Selection ${new Date().toLocaleString()}`}
+      />
     </ThemeProvider>
   );
 }

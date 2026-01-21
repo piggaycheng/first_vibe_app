@@ -9,12 +9,12 @@ export function useLayoutPersistence() {
   const addCommand = useGridStore((state) => state.addCommand);
   const setLastLoadedLayoutId = useGridStore((state) => state.setLastLoadedLayoutId);
 
-  const saveLayout = useCallback(async () => {
+  const saveLayout = useCallback(async (name?: string) => {
     try {
       const timestamp = new Date();
       await db.layouts.add({
         id: crypto.randomUUID(),
-        name: `Layout ${timestamp.toLocaleString()}`,
+        name: name || `Layout ${timestamp.toLocaleString()}`,
         items: gridItems,
         updatedAt: timestamp
       });
@@ -24,7 +24,7 @@ export function useLayoutPersistence() {
     }
   }, [gridItems]);
 
-  const saveSelectedLayout = useCallback(async () => {
+  const saveSelectedLayout = useCallback(async (name?: string) => {
     if (!selectedWidgetId) {
       console.warn('No widget selected to save');
       return;
@@ -40,7 +40,7 @@ export function useLayoutPersistence() {
       const timestamp = new Date();
       await db.layouts.add({
         id: crypto.randomUUID(),
-        name: `Selection: ${selectedWidget.id} ${timestamp.toLocaleString()}`,
+        name: name || `Selection: ${selectedWidget.id} ${timestamp.toLocaleString()}`,
         items: [selectedWidget],
         updatedAt: timestamp
       });
