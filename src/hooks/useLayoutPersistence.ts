@@ -9,13 +9,14 @@ export function useLayoutPersistence() {
   const addCommand = useGridStore((state) => state.addCommand);
   const setLastLoadedLayoutId = useGridStore((state) => state.setLastLoadedLayoutId);
 
-  const saveLayout = useCallback(async (name?: string) => {
+  const saveLayout = useCallback(async (name?: string, thumbnail?: Blob) => {
     try {
       const timestamp = new Date();
       await db.layouts.add({
         id: crypto.randomUUID(),
         name: name || `Layout ${timestamp.toLocaleString()}`,
         items: gridItems,
+        thumbnail,
         updatedAt: timestamp
       });
       console.log('Layout saved successfully');
@@ -24,7 +25,7 @@ export function useLayoutPersistence() {
     }
   }, [gridItems]);
 
-  const saveSelectedLayout = useCallback(async (name?: string) => {
+  const saveSelectedLayout = useCallback(async (name?: string, thumbnail?: Blob) => {
     if (!selectedWidgetId) {
       console.warn('No widget selected to save');
       return;
@@ -42,6 +43,7 @@ export function useLayoutPersistence() {
         id: crypto.randomUUID(),
         name: name || `Selection: ${selectedWidget.id} ${timestamp.toLocaleString()}`,
         items: [selectedWidget],
+        thumbnail,
         updatedAt: timestamp
       });
       console.log('Selected layout saved successfully');

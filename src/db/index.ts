@@ -5,6 +5,7 @@ interface Layout {
   id: string;
   name: string;
   items: GridStackWidget[];
+  thumbnail?: Blob;
   updatedAt: Date;
 }
 

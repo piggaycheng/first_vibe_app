@@ -147,12 +147,23 @@ function App() {
     setSaveDialogOpen(true);
   };
 
-  const handleConfirmSave = (name: string) => {
+  const handleConfirmSave = (name: string, thumbnail?: Blob) => {
     if (saveType === 'all') {
-      saveLayout(name);
+      saveLayout(name, thumbnail);
     } else {
-      saveSelectedLayout(name);
+      saveSelectedLayout(name, thumbnail);
     }
+  };
+
+  const getCaptureSelector = () => {
+    if (saveType === 'all') return ".grid-stack-root";
+    // For selection: try to find a nested grid first (container), otherwise fallback to item content
+    // We target the nested grid directly to avoid capturing the container's border
+    const nestedGrid = document.querySelector(`.grid-stack-item[gs-id="${selectedWidgetId}"] .grid-stack`);
+    if (nestedGrid) {
+      return `.grid-stack-item[gs-id="${selectedWidgetId}"] .grid-stack`;
+    }
+    return `.grid-stack-item[gs-id="${selectedWidgetId}"] > .grid-stack-item-content`;
   };
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -428,6 +439,7 @@ function App() {
         onSave={handleConfirmSave}
         title={saveType === 'all' ? 'Save Layout' : 'Save Selected Widget'}
         defaultName={saveType === 'all' ? `Layout ${new Date().toLocaleString()}` : `Selection ${new Date().toLocaleString()}`}
+        captureSelector={getCaptureSelector()}
       />
     </ThemeProvider>
   );
