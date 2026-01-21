@@ -8,6 +8,7 @@ interface UIState {
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
   setRightSidebar: (open: boolean) => void;
+  setEditMode: (isEdit: boolean) => void;
   toggleEditMode: () => void;
   toggleTheme: () => void;
 }
@@ -20,6 +21,7 @@ export const useUIStore = create<UIState>((set) => ({
   toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
   setRightSidebar: (open) => set({ rightSidebarOpen: open }),
+  setEditMode: (isEdit) => set({ isEditMode: isEdit }),
   toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
   toggleTheme: () => set((state) => ({ themeMode: state.themeMode === 'light' ? 'dark' : 'light' })),
 }));

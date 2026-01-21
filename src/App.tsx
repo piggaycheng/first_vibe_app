@@ -124,6 +124,7 @@ function App() {
     toggleLeftSidebar: handleDrawerToggle,
     toggleRightSidebar: handleRightDrawerToggle,
     setRightSidebar,
+    setEditMode,
     toggleEditMode,
     toggleTheme
   } = useUIStore();
@@ -166,13 +167,14 @@ function App() {
 
   useEffect(() => {
     if (isDashboard) {
+      setEditMode(false); // Always reset to View Mode when entering dashboard
       if (!lastLoadedLayoutId) {
         loadLayout();
       }
     } else {
       setRightSidebar(false);
     }
-  }, [isDashboard, loadLayout, setRightSidebar, lastLoadedLayoutId]);
+  }, [isDashboard, loadLayout, setRightSidebar, lastLoadedLayoutId, setEditMode]);
 
   const theme = useMemo(
     () =>
