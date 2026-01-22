@@ -13,19 +13,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControlLabel,
-  Checkbox,
-  ToggleButtonGroup,
-  ToggleButton,
-  Snackbar,
-  Alert,
-  DialogContentText
+  TableRow
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -39,6 +27,9 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNavigate } from 'react-router-dom';
 import { Tree, NodeApi } from 'react-arborist';
 import { db, type Page } from '../db';
+import ConfirmDialog from '../components/ConfirmDialog';
+import AppSnackbar from '../components/AppSnackbar';
+import AddPageDialog, { type NewPageData } from '../components/AddPageDialog';
 
 // Data Structure used by Tree (extends DB Page with children)
 interface PageNode extends Omit<Page, 'parentId'> {
@@ -52,12 +43,6 @@ export default function PageManagementPage() {
   
   // Dialog States
   const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [newPageData, setNewPageData] = useState<{
-    name: string;
-    path: string;
-    visible: boolean;
-    type: 'page' | 'folder';
-  }>({ name: '', path: '', visible: true, type: 'page' });
 
   // Delete Dialog State
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; nodeId: string | null; hasChildren: boolean }>({
@@ -108,14 +93,14 @@ export default function PageManagementPage() {
     return roots;
   };
 
-  const handleAddPage = async () => {
+  const handleAddPage = async (data: NewPageData) => {
     const id = crypto.randomUUID();
     const newPage: Page = {
       id,
-      name: newPageData.name,
-      path: newPageData.type === 'folder' ? '-' : newPageData.path, // Folders don't really have paths usually
-      visible: newPageData.visible,
-      type: newPageData.type,
+      name: data.name,
+      path: data.type === 'folder' ? '-' : data.path, // Folders don't really have paths usually
+      visible: data.visible,
+      type: data.type,
       parentId: null, // Default to root
       gridId: ''
     };
@@ -128,7 +113,6 @@ export default function PageManagementPage() {
       
       // Close and Reset
       setOpenAddDialog(false);
-      setNewPageData({ name: '', path: '', visible: true, type: 'page' });
       setSnackbar({ open: true, message: 'Item created successfully', severity: 'success' });
     } catch (error) {
       console.error("Failed to add page:", error);
@@ -403,99 +387,32 @@ export default function PageManagementPage() {
       </Paper>
 
       {/* Add New Page Dialog */}
-      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Add New Item</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-               <Typography variant="body2">Type:</Typography>
-               <ToggleButtonGroup
-                 value={newPageData.type}
-                 exclusive
-                 onChange={(_e, val) => val && setNewPageData({ ...newPageData, type: val })}
-                 size="small"
-                 color="primary"
-               >
-                 <ToggleButton value="page">Page</ToggleButton>
-                 <ToggleButton value="folder">Folder</ToggleButton>
-               </ToggleButtonGroup>
-            </Box>
-
-            <TextField
-              label="Name"
-              variant="outlined"
-              fullWidth
-              value={newPageData.name}
-              onChange={(e) => setNewPageData({ ...newPageData, name: e.target.value })}
-            />
-            
-            {newPageData.type === 'page' && (
-              <TextField
-                label="Path"
-                variant="outlined"
-                fullWidth
-                value={newPageData.path}
-                onChange={(e) => setNewPageData({ ...newPageData, path: e.target.value })}
-                helperText="e.g. /my-page"
-              />
-            )}
-            
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={newPageData.visible}
-                  onChange={(e) => setNewPageData({ ...newPageData, visible: e.target.checked })}
-                  color="primary"
-                />
-              }
-              label="Visible"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAddDialog(false)}>Cancel</Button>
-          <Button 
-            onClick={handleAddPage} 
-            variant="contained" 
-            disabled={!newPageData.name || (newPageData.type === 'page' && !newPageData.path)}
-          >
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <AddPageDialog 
+        open={openAddDialog} 
+        onClose={() => setOpenAddDialog(false)} 
+        onSubmit={handleAddPage} 
+      />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={deleteDialog.open}
-        onClose={() => setDeleteDialog({ ...deleteDialog, open: false })}
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {deleteDialog.hasChildren
-              ? "This folder has children. Deleting it will remove all contents within it. Are you sure?"
-              : "Are you sure you want to delete this item? This action cannot be undone."}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog({ ...deleteDialog, open: false })}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" autoFocus>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+        title="Confirm Delete"
+        content={deleteDialog.hasChildren
+          ? "This folder has children. Deleting it will remove all contents within it. Are you sure?"
+          : "Are you sure you want to delete this item? This action cannot be undone."}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDialog({ ...deleteDialog, open: false })}
+        confirmLabel="Delete"
+        confirmColor="error"
+      />
 
       {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      />
     </Box>
   );
 }
