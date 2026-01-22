@@ -22,7 +22,10 @@ import {
   FormControlLabel,
   Checkbox,
   ToggleButtonGroup,
-  ToggleButton
+  ToggleButton,
+  Snackbar,
+  Alert,
+  DialogContentText
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -46,6 +49,8 @@ interface PageNode extends Omit<Page, 'parentId'> {
 export default function PageManagementPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<PageNode[]>([]);
+  
+  // Dialog States
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [newPageData, setNewPageData] = useState<{
     name: string;
@@ -54,13 +59,28 @@ export default function PageManagementPage() {
     type: 'page' | 'folder';
   }>({ name: '', path: '', visible: true, type: 'page' });
 
+  // Delete Dialog State
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; nodeId: string | null; hasChildren: boolean }>({
+    open: false,
+    nodeId: null,
+    hasChildren: false
+  });
+
+  // Snackbar State
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
   // Load Data from DB
+  const loadPages = async () => {
+    const pages = await db.pages.toArray();
+    const tree = buildTree(pages);
+    setData(tree);
+  };
+
   useEffect(() => {
-    const loadPages = async () => {
-      const pages = await db.pages.toArray();
-      const tree = buildTree(pages);
-      setData(tree);
-    };
     loadPages();
   }, []);
 
@@ -103,14 +123,16 @@ export default function PageManagementPage() {
     try {
       await db.pages.add(newPage);
       
-      // Update UI state - appending to root
-      setData(prev => [...prev, { ...newPage, children: [] }]);
+      // Update UI state
+      await loadPages();
       
       // Close and Reset
       setOpenAddDialog(false);
       setNewPageData({ name: '', path: '', visible: true, type: 'page' });
+      setSnackbar({ open: true, message: 'Item created successfully', severity: 'success' });
     } catch (error) {
       console.error("Failed to add page:", error);
+      setSnackbar({ open: true, message: 'Failed to create item', severity: 'error' });
     }
   };
 
@@ -164,31 +186,55 @@ export default function PageManagementPage() {
     });
 
     // 2. Persist to DB
-    // We only support single drag for now in UI logic above
     const nodeId = dragIds[0];
     try {
       await db.pages.update(nodeId, { parentId: parentId });
     } catch (error) {
       console.error("Failed to update parentId:", error);
-      // Ideally revert UI here
+      loadPages(); // Revert on error
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
+  const deleteRecursive = async (id: string) => {
+    // Find children in DB
+    const children = await db.pages.where('parentId').equals(id).toArray();
+    for (const child of children) {
+        await deleteRecursive(child.id);
+    }
+    await db.pages.delete(id);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    // Find node in local data to check for children
+    const findNode = (nodes: PageNode[], targetId: string): PageNode | undefined => {
+        for (const node of nodes) {
+            if (node.id === targetId) return node;
+            if (node.children) {
+                const found = findNode(node.children, targetId);
+                if (found) return found;
+            }
+        }
+        return undefined;
+    };
+    
+    const node = findNode(data, id);
+    const hasChildren = node ? (node.children && node.children.length > 0) : false;
+
+    setDeleteDialog({ open: true, nodeId: id, hasChildren: !!hasChildren });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteDialog.nodeId) {
         try {
-            await db.pages.delete(id);
-            // Also need to handle children? 
-            // For now, let's just refresh or remove from UI.
-            // If deleting a folder with children, children become orphans or are deleted?
-            // Simple approach: delete children too (cascade) or they just disappear from tree (orphan).
-            // Let's reload to be safe and simple for now.
-             const pages = await db.pages.toArray();
-             setData(buildTree(pages));
+            await deleteRecursive(deleteDialog.nodeId);
+            await loadPages();
+            setSnackbar({ open: true, message: 'Item deleted successfully', severity: 'success' });
         } catch (error) {
             console.error("Failed to delete:", error);
+            setSnackbar({ open: true, message: 'Failed to delete item', severity: 'error' });
         }
     }
+    setDeleteDialog({ open: false, nodeId: null, hasChildren: false });
   };
 
   // Define column widths to ensure alignment between Header and Body
@@ -344,7 +390,7 @@ export default function PageManagementPage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton size="small" color="error" onClick={() => handleDelete(node.data.id)}>
+                      <IconButton size="small" color="error" onClick={() => handleDeleteClick(node.data.id)}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -417,6 +463,39 @@ export default function PageManagementPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ ...deleteDialog, open: false })}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {deleteDialog.hasChildren
+              ? "This folder has children. Deleting it will remove all contents within it. Are you sure?"
+              : "Are you sure you want to delete this item? This action cannot be undone."}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ ...deleteDialog, open: false })}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
