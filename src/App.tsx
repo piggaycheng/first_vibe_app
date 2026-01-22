@@ -20,15 +20,14 @@ import {
   Avatar,
   Menu,
   MenuItem,
+  Collapse,
 } from '@mui/material';
 import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import HomeIcon from '@mui/icons-material/Home';
 import InfoIcon from '@mui/icons-material/Info';
-import ContactMailIcon from '@mui/icons-material/ContactMail';
 import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
@@ -38,20 +37,28 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import WebIcon from '@mui/icons-material/Web';
+import FolderIcon from '@mui/icons-material/Folder';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import SaveIcon from '@mui/icons-material/Save';
+
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useMemo, useEffect, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+
 import RightSidebar from './components/RightSidebar';
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import GridManagementPage from './pages/GridManagementPage';
 import PageManagementPage from './pages/PageManagementPage';
+import SaveLayoutDialog from './components/SaveLayoutDialog';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
-import './App.css';
-import { useMemo, useEffect, useState } from 'react';
-import SaveIcon from '@mui/icons-material/Save';
 import { useLayoutPersistence } from './hooks/useLayoutPersistence';
-import SaveLayoutDialog from './components/SaveLayoutDialog';
+import { db, type Page } from './db';
+import './App.css';
 
 const drawerWidth = 240;
 const rightDrawerWidth = 240;
@@ -59,6 +66,12 @@ const rightDrawerWidth = 240;
 // Custom AppBar Interface
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
+}
+
+// Data Structure used by Tree
+interface PageNode extends Omit<Page, 'parentId'> {
+  parentId?: string | null;
+  children?: PageNode[];
 }
 
 // Styled AppBar that shifts when drawer opens
@@ -116,6 +129,75 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
   }),
 }));
 
+// Helper to reconstruct tree from flat list
+const buildTree = (items: Page[]): PageNode[] => {
+  const map = new Map<string, PageNode>();
+  const roots: PageNode[] = [];
+
+  // 1. Create all nodes
+  items.forEach(item => {
+    map.set(item.id, { ...item, children: [] });
+  });
+
+  // 2. Link them
+  items.forEach(item => {
+    const node = map.get(item.id)!;
+    if (item.parentId && map.has(item.parentId)) {
+      map.get(item.parentId)!.children!.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  return roots;
+};
+
+// Sidebar Item Component
+const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  
+  const hasChildren = node.children && node.children.length > 0;
+  // Simple matching: current path equals node path
+  const isSelected = location.pathname === node.path;
+
+  const handleClick = () => {
+    if (node.type === 'folder') {
+      setOpen(!open);
+    } else {
+      navigate(node.path);
+    }
+  };
+
+  return (
+    <>
+      <ListItem disablePadding>
+        <ListItemButton 
+          onClick={handleClick} 
+          selected={!hasChildren && isSelected}
+          sx={{ pl: pl ? pl : undefined }} // Indentation
+        >
+          <ListItemIcon>
+            {node.type === 'folder' ? <FolderIcon /> : <InsertDriveFileIcon />}
+          </ListItemIcon>
+          <ListItemText primary={node.name} />
+          {node.type === 'folder' && hasChildren ? (open ? <ExpandLess /> : <ExpandMore />) : null}
+        </ListItemButton>
+      </ListItem>
+      {node.type === 'folder' && hasChildren && (
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+             {node.children!.map(child => (
+               <SidebarItem key={child.id} node={child} pl={pl + 4} />
+             ))}
+          </List>
+        </Collapse>
+      )}
+    </>
+  );
+};
+
 function App() {
   const {
     leftSidebarOpen: open,
@@ -143,6 +225,13 @@ function App() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveType, setSaveType] = useState<'all' | 'selected'>('all');
 
+  // Load Pages from DB
+  const pages = useLiveQuery(async () => {
+    const allPages = await db.pages.toArray();
+    return allPages.filter(p => p.visible);
+  }) || [];
+  const tree = useMemo(() => buildTree(pages), [pages]);
+
   const handleOpenSaveDialog = (type: 'all' | 'selected') => {
     setSaveType(type);
     setSaveDialogOpen(true);
@@ -158,8 +247,6 @@ function App() {
 
   const getCaptureSelector = () => {
     if (saveType === 'all') return ".grid-stack-root";
-    // For selection: try to find a nested grid first (container), otherwise fallback to item content
-    // We target the nested grid directly to avoid capturing the container's border
     const nestedGrid = document.querySelector(`.grid-stack-item[gs-id="${selectedWidgetId}"] .grid-stack`);
     if (nestedGrid) {
       return `.grid-stack-item[gs-id="${selectedWidgetId}"] .grid-stack`;
@@ -179,7 +266,7 @@ function App() {
 
   useEffect(() => {
     if (isDashboard) {
-      setEditMode(false); // Always reset to View Mode when entering dashboard
+      setEditMode(false); 
       if (!lastLoadedLayoutId) {
         loadLayout();
       }
@@ -241,11 +328,6 @@ function App() {
     addCommand({ type: 'EXPORT_LAYOUT', payload: {} });
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <HomeIcon />, path: '/' },
-    { text: 'Analytics', icon: <ContactMailIcon />, path: '/analytics' },
-  ];
-
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: 'flex' }}>
@@ -272,7 +354,13 @@ function App() {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            <Typography 
+              variant="h6" 
+              noWrap 
+              component="div" 
+              sx={{ flexGrow: 1, cursor: 'pointer' }}
+              onClick={() => navigate('/')}
+            >
               Nested Gridstack Dashboard
             </Typography>
 
@@ -388,18 +476,8 @@ function App() {
           </DrawerHeader>
           <Divider />
           <List sx={{ flexGrow: 1 }}>
-            {menuItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
-                <ListItemButton
-                  selected={location.pathname === item.path}
-                  onClick={() => navigate(item.path)}
-                >
-                  <ListItemIcon>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
+            {tree.map((node) => (
+              <SidebarItem key={node.id} node={node} />
             ))}
           </List>
 
