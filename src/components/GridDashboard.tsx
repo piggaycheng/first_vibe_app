@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { GridStack, type GridStackOptions, type GridStackNode } from 'gridstack';
+import { GridStack, type GridStackOptions, type GridStackNode, type GridStackWidget } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
 import { useGridStore } from '../store/useGridStore';
 import { useUIStore } from '../store/useUIStore';
@@ -109,8 +109,7 @@ export default function GridDashboard() {
       if (type === 'MOVE_WIDGET') {
         const { nodeId, targetParentId } = payload;
         const widgetEl = document.querySelector(`.grid-stack-item[gs-id="${nodeId}"]`);
-        
-        if (widgetEl) {
+        if (widgetEl && nodeId) {
           let targetGrid: GridStack | undefined;
           if (!targetParentId) {
             targetGrid = gridRef.current;
@@ -125,22 +124,59 @@ export default function GridDashboard() {
           }
 
           if (targetGrid) {
-            const gridNode = (widgetEl as any).gridstackNode;
-            const sourceGrid = gridNode?.grid;
-            if (sourceGrid) sourceGrid.removeWidget(widgetEl, false);
+            // 1. Get the latest layout from the grid to ensure we have the full data structure (including children)
+            //    We need to save() first because the internal node objects might not be fully synced with DOM changes if we just read properties.
+            const fullLayout = gridRef.current.save() as unknown as GridStackWidget[];
             
-            widgetEl.removeAttribute('gs-x');
-            widgetEl.removeAttribute('gs-y');
-            
-            targetGrid.el.appendChild(widgetEl);
-            targetGrid.makeWidget(widgetEl as HTMLElement);
+            // Helper to find node in the layout tree
+            const findNode = (nodes: GridStackWidget[], id: string): GridStackWidget | null => {
+              for (const node of nodes) {
+                if (String(node.id) === id) return node;
+                if (node.subGridOpts?.children) {
+                  const found = findNode(node.subGridOpts.children, id);
+                  if (found) return found;
+                }
+              }
+              return null;
+            };
 
-            setTimeout(() => {
-               if (gridRef.current) {
-                 const layout = gridRef.current.save();
-                 setGridItems(layout as any);
-               }
-            }, 0);
+            const nodeData = findNode(fullLayout, nodeId);
+
+            if (nodeData) {
+              // 2. Remove the old widget completely (including DOM)
+              //    This prevents duplication and ensures a clean state.
+              const gridNode = (widgetEl as any).gridstackNode;
+              const sourceGrid = gridNode?.grid;
+              if (sourceGrid) {
+                sourceGrid.removeWidget(widgetEl, true); // true = remove DOM
+              }
+
+              // 3. Prepare new widget options
+              //    We clean up x/y to let auto-positioning handle placement in the new parent
+              //    We MUST preserve subGridOpts (with children) so GridStack recreates the subtree.
+              const newOptions = {
+                ...nodeData,
+                x: undefined, // Let it auto-position
+                y: undefined,
+                // Ensure id is a string
+                id: String(nodeData.id)
+              };
+
+              console.log('Moving (Recreating) widget:', newOptions);
+
+              // 4. Add the widget to the new grid
+              targetGrid.addWidget(newOptions);
+
+              // 5. Sync store
+              setTimeout(() => {
+                 if (gridRef.current) {
+                   const layout = gridRef.current.save();
+                   setGridItems(layout as any);
+                 }
+              }, 0);
+            } else {
+              console.error('Could not find node data for move:', nodeId);
+            }
           }
         }
       } 
