@@ -20,7 +20,9 @@ import {
   DialogActions,
   TextField,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  ToggleButtonGroup,
+  ToggleButton
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -41,6 +43,7 @@ interface PageNode {
   name: string;
   path: string;
   visible: boolean;
+  type: 'page' | 'folder';
   children?: PageNode[];
 }
 
@@ -50,9 +53,10 @@ const initialData: PageNode[] = [
     name: 'Main Menu',
     path: '-',
     visible: true,
+    type: 'folder',
     children: [
-      { id: '1-1', name: 'Dashboard', path: '/', visible: true },
-      { id: '1-2', name: 'Analytics', path: '/analytics', visible: true },
+      { id: '1-1', name: 'Dashboard', path: '/', visible: true, type: 'page' },
+      { id: '1-2', name: 'Analytics', path: '/analytics', visible: true, type: 'page' },
     ]
   },
   {
@@ -60,6 +64,7 @@ const initialData: PageNode[] = [
     name: 'System Settings',
     path: '/settings',
     visible: true,
+    type: 'page',
   }
 ];
 
@@ -67,7 +72,12 @@ export default function PageManagementPage() {
   const navigate = useNavigate();
   const [data, setData] = useState(initialData);
   const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [newPageData, setNewPageData] = useState({ name: '', path: '', visible: true });
+  const [newPageData, setNewPageData] = useState<{
+    name: string;
+    path: string;
+    visible: boolean;
+    type: 'page' | 'folder';
+  }>({ name: '', path: '', visible: true, type: 'page' });
 
   const handleAddPage = async () => {
     const id = crypto.randomUUID();
@@ -76,6 +86,7 @@ export default function PageManagementPage() {
       name: newPageData.name,
       path: newPageData.path,
       visible: newPageData.visible,
+      type: newPageData.type,
       gridId: '' // Reserved field
     };
 
@@ -87,10 +98,9 @@ export default function PageManagementPage() {
       
       // Close and Reset
       setOpenAddDialog(false);
-      setNewPageData({ name: '', path: '', visible: true });
+      setNewPageData({ name: '', path: '', visible: true, type: 'page' });
     } catch (error) {
       console.error("Failed to add page:", error);
-      // Ideally show a snackbar here
     }
   };
 
@@ -262,14 +272,14 @@ export default function PageManagementPage() {
 
                       {/* Type Icon */}
                       <Box sx={{ display: 'flex', alignItems: 'center', mr: 1, flexShrink: 0 }}>
-                        {node.isLeaf ? (
-                          <InsertDriveFileIcon color="action" fontSize="small" />
-                        ) : (
+                        {node.data.type === 'folder' ? (
                           <FolderIcon color="action" fontSize="small" />
+                        ) : (
+                          <InsertDriveFileIcon color="action" fontSize="small" />
                         )}
                       </Box>
 
-                      <Typography variant="body2" noWrap sx={{ fontWeight: node.isLeaf ? 400 : 500 }}>
+                      <Typography variant="body2" noWrap sx={{ fontWeight: node.data.type === 'folder' ? 500 : 400 }}>
                         {node.data.name}
                       </Typography>
                     </Box>
@@ -287,7 +297,7 @@ export default function PageManagementPage() {
                     <Switch
                       checked={node.data.visible}
                       size="small"
-                      color="success"
+                      color="primary"
                     />
                   </Box>
 
@@ -313,24 +323,42 @@ export default function PageManagementPage() {
 
       {/* Add New Page Dialog */}
       <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Add New Page</DialogTitle>
+        <DialogTitle>Add New Item</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+               <Typography variant="body2">Type:</Typography>
+               <ToggleButtonGroup
+                 value={newPageData.type}
+                 exclusive
+                 onChange={(_e, val) => val && setNewPageData({ ...newPageData, type: val })}
+                 size="small"
+                 color="primary"
+               >
+                 <ToggleButton value="page">Page</ToggleButton>
+                 <ToggleButton value="folder">Folder</ToggleButton>
+               </ToggleButtonGroup>
+            </Box>
+
             <TextField
-              label="Page Name"
+              label="Name"
               variant="outlined"
               fullWidth
               value={newPageData.name}
               onChange={(e) => setNewPageData({ ...newPageData, name: e.target.value })}
             />
-            <TextField
-              label="Path"
-              variant="outlined"
-              fullWidth
-              value={newPageData.path}
-              onChange={(e) => setNewPageData({ ...newPageData, path: e.target.value })}
-              helperText="e.g. /my-page"
-            />
+            
+            {newPageData.type === 'page' && (
+              <TextField
+                label="Path"
+                variant="outlined"
+                fullWidth
+                value={newPageData.path}
+                onChange={(e) => setNewPageData({ ...newPageData, path: e.target.value })}
+                helperText="e.g. /my-page"
+              />
+            )}
+            
             <FormControlLabel
               control={
                 <Checkbox
@@ -345,8 +373,12 @@ export default function PageManagementPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenAddDialog(false)}>Cancel</Button>
-          <Button onClick={handleAddPage} variant="contained" disabled={!newPageData.name || !newPageData.path}>
-            Add Page
+          <Button 
+            onClick={handleAddPage} 
+            variant="contained" 
+            disabled={!newPageData.name || (newPageData.type === 'page' && !newPageData.path)}
+          >
+            Create
           </Button>
         </DialogActions>
       </Dialog>

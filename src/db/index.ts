@@ -14,6 +14,7 @@ interface Page {
   name: string;
   path: string;
   visible: boolean;
+  type: 'page' | 'folder';
   gridId?: string;
 }
 
@@ -23,7 +24,6 @@ const db = new Dexie('GridDashboardDB') as Dexie & {
 };
 
 // Schema declaration:
-// 'id' is the primary key
 db.version(1).stores({
   layouts: 'id, name, updatedAt'
 });
@@ -31,6 +31,11 @@ db.version(1).stores({
 db.version(2).stores({
   layouts: 'id, name, updatedAt',
   pages: 'id, name, path, visible, gridId'
+});
+
+db.version(3).stores({
+  layouts: 'id, name, updatedAt',
+  pages: 'id, name, path, visible, gridId, type'
 });
 
 export type { Layout, Page };
