@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -35,42 +35,17 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNavigate } from 'react-router-dom';
 import { Tree, NodeApi } from 'react-arborist';
-import { db } from '../db';
+import { db, type Page } from '../db';
 
-// Data Structure
-interface PageNode {
-  id: string;
-  name: string;
-  path: string;
-  visible: boolean;
-  type: 'page' | 'folder';
+// Data Structure used by Tree (extends DB Page with children)
+interface PageNode extends Omit<Page, 'parentId'> {
+  parentId?: string | null;
   children?: PageNode[];
 }
 
-const initialData: PageNode[] = [
-  {
-    id: '1',
-    name: 'Main Menu',
-    path: '-',
-    visible: true,
-    type: 'folder',
-    children: [
-      { id: '1-1', name: 'Dashboard', path: '/', visible: true, type: 'page' },
-      { id: '1-2', name: 'Analytics', path: '/analytics', visible: true, type: 'page' },
-    ]
-  },
-  {
-    id: '2',
-    name: 'System Settings',
-    path: '/settings',
-    visible: true,
-    type: 'page',
-  }
-];
-
 export default function PageManagementPage() {
   const navigate = useNavigate();
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState<PageNode[]>([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [newPageData, setNewPageData] = useState<{
     name: string;
@@ -79,21 +54,56 @@ export default function PageManagementPage() {
     type: 'page' | 'folder';
   }>({ name: '', path: '', visible: true, type: 'page' });
 
+  // Load Data from DB
+  useEffect(() => {
+    const loadPages = async () => {
+      const pages = await db.pages.toArray();
+      const tree = buildTree(pages);
+      setData(tree);
+    };
+    loadPages();
+  }, []);
+
+  // Helper to reconstruct tree from flat list
+  const buildTree = (items: Page[]): PageNode[] => {
+    const map = new Map<string, PageNode>();
+    const roots: PageNode[] = [];
+
+    // 1. Create all nodes
+    items.forEach(item => {
+      // Ensure we explicitly include parentId for logic, though Tree uses nesting
+      map.set(item.id, { ...item, children: [] });
+    });
+
+    // 2. Link them
+    items.forEach(item => {
+      const node = map.get(item.id)!;
+      if (item.parentId && map.has(item.parentId)) {
+        map.get(item.parentId)!.children!.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return roots;
+  };
+
   const handleAddPage = async () => {
     const id = crypto.randomUUID();
-    const newPage = {
+    const newPage: Page = {
       id,
       name: newPageData.name,
-      path: newPageData.path,
+      path: newPageData.type === 'folder' ? '-' : newPageData.path, // Folders don't really have paths usually
       visible: newPageData.visible,
       type: newPageData.type,
-      gridId: '' // Reserved field
+      parentId: null, // Default to root
+      gridId: ''
     };
 
     try {
       await db.pages.add(newPage);
       
-      // Update UI state - appending to root for now
+      // Update UI state - appending to root
       setData(prev => [...prev, { ...newPage, children: [] }]);
       
       // Close and Reset
@@ -101,6 +111,83 @@ export default function PageManagementPage() {
       setNewPageData({ name: '', path: '', visible: true, type: 'page' });
     } catch (error) {
       console.error("Failed to add page:", error);
+    }
+  };
+
+  const handleMove = async ({ dragIds, parentId, index }: { dragIds: string[], parentId: string | null, index: number }) => {
+    // 1. Optimistic UI Update
+    setData(prevData => {
+      const newData = JSON.parse(JSON.stringify(prevData)) as PageNode[];
+      let movedNode: PageNode | null = null;
+
+      // Recursive remove
+      const removeNode = (nodes: PageNode[], id: string): boolean => {
+        const i = nodes.findIndex(n => n.id === id);
+        if (i !== -1) {
+          movedNode = nodes[i];
+          nodes.splice(i, 1);
+          return true;
+        }
+        for (const node of nodes) {
+          if (node.children && removeNode(node.children, id)) return true;
+        }
+        return false;
+      };
+
+      const id = dragIds[0];
+      removeNode(newData, id);
+
+      if (!movedNode) return prevData;
+
+      // Insert
+      if (parentId === null) {
+        newData.splice(index, 0, movedNode);
+      } else {
+        const findNode = (nodes: PageNode[], targetId: string): PageNode | undefined => {
+          for (const node of nodes) {
+            if (node.id === targetId) return node;
+            if (node.children) {
+              const found = findNode(node.children, targetId);
+              if (found) return found;
+            }
+          }
+          return undefined;
+        };
+
+        const parent = findNode(newData, parentId);
+        if (parent) {
+          if (!parent.children) parent.children = [];
+          parent.children.splice(index, 0, movedNode);
+        }
+      }
+      return newData;
+    });
+
+    // 2. Persist to DB
+    // We only support single drag for now in UI logic above
+    const nodeId = dragIds[0];
+    try {
+      await db.pages.update(nodeId, { parentId: parentId });
+    } catch (error) {
+      console.error("Failed to update parentId:", error);
+      // Ideally revert UI here
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this item?')) {
+        try {
+            await db.pages.delete(id);
+            // Also need to handle children? 
+            // For now, let's just refresh or remove from UI.
+            // If deleting a folder with children, children become orphans or are deleted?
+            // Simple approach: delete children too (cascade) or they just disappear from tree (orphan).
+            // Let's reload to be safe and simple for now.
+             const pages = await db.pages.toArray();
+             setData(buildTree(pages));
+        } catch (error) {
+            console.error("Failed to delete:", error);
+        }
     }
   };
 
@@ -162,62 +249,15 @@ export default function PageManagementPage() {
           </Table>
         </TableContainer>
 
-        {/* Tree Body - mimicking TableRow */}
+        {/* Tree Body */}
         <Box sx={{ height: 600 }}>
           <Tree
             data={data}
-            onMove={({ dragIds, parentId, index }) => {
-              setData(prevData => {
-                const newData = JSON.parse(JSON.stringify(prevData)) as PageNode[];
-                let movedNode: PageNode | null = null;
-
-                // Helper to remove node
-                const removeNode = (nodes: PageNode[], id: string): boolean => {
-                  const i = nodes.findIndex(n => n.id === id);
-                  if (i !== -1) {
-                    movedNode = nodes[i];
-                    nodes.splice(i, 1);
-                    return true;
-                  }
-                  for (const node of nodes) {
-                    if (node.children && removeNode(node.children, id)) return true;
-                  }
-                  return false;
-                };
-
-                // 1. Remove the node (handling single selection for now)
-                const id = dragIds[0];
-                removeNode(newData, id);
-
-                if (!movedNode) return prevData;
-
-                // 2. Insert the node
-                if (parentId === null) {
-                  newData.splice(index, 0, movedNode);
-                } else {
-                  const findNode = (nodes: PageNode[], targetId: string): PageNode | undefined => {
-                    for (const node of nodes) {
-                      if (node.id === targetId) return node;
-                      if (node.children) {
-                        const found = findNode(node.children, targetId);
-                        if (found) return found;
-                      }
-                    }
-                    return undefined;
-                  };
-
-                  const parent = findNode(newData, parentId);
-                  if (parent) {
-                    if (!parent.children) parent.children = [];
-                    parent.children.splice(index, 0, movedNode);
-                  }
-                }
-                return newData;
-              });
-            }}
+            onMove={handleMove}
+            disableDrop={({ parentNode }) => parentNode.data.type === 'page'}
             width="100%"
             height={600}
-            rowHeight={60} // Matches standard TableRow height
+            rowHeight={60}
             indent={24}
             padding={0}
             rowClassName="tree-row"
@@ -228,7 +268,7 @@ export default function PageManagementPage() {
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    height: '100%', // Ensure consistent height
+                    height: '100%', 
                     width: '100%',
                     borderBottom: '1px solid rgba(224, 224, 224, 1)',
                     boxSizing: 'border-box',
@@ -238,7 +278,6 @@ export default function PageManagementPage() {
                 >
                   {/* Name Column */}
                   <Box sx={{ width: widthConfig.name, display: 'flex', alignItems: 'center', pl: 2, boxSizing: 'border-box', overflow: 'hidden' }}>
-                    {/* Drag Handle - Fixed position, no indent */}
                     <Box
                       ref={dragHandle}
                       sx={{
@@ -247,7 +286,7 @@ export default function PageManagementPage() {
                         alignItems: 'center',
                         color: 'action.active',
                         mr: 1,
-                        minWidth: 24, // Fixed width for alignment
+                        minWidth: 24,
                         opacity: 0.5,
                         '&:hover': { opacity: 1 }
                       }}
@@ -255,22 +294,18 @@ export default function PageManagementPage() {
                       <DragIndicatorIcon />
                     </Box>
 
-                    {/* Indentation Area - Only pushes the content after Drag Handle */}
                     <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-                      {/* Indentation Spacer */}
                       <Box sx={{ width: node.level * 24, flexShrink: 0 }} />
 
-                      {/* Toggle Icon */}
                       <Box
                         onClick={(e) => { e.stopPropagation(); node.toggle(); }}
                         sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', mr: 1, width: 24, justifyContent: 'center', flexShrink: 0 }}
                       >
-                        {!node.isLeaf && (
+                        {node.data.type === 'folder' && !node.isLeaf && (
                           node.isOpen ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />
                         )}
                       </Box>
 
-                      {/* Type Icon */}
                       <Box sx={{ display: 'flex', alignItems: 'center', mr: 1, flexShrink: 0 }}>
                         {node.data.type === 'folder' ? (
                           <FolderIcon color="action" fontSize="small" />
@@ -309,7 +344,7 @@ export default function PageManagementPage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton size="small" color="error">
+                      <IconButton size="small" color="error" onClick={() => handleDelete(node.data.id)}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>

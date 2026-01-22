@@ -15,7 +15,9 @@ interface Page {
   path: string;
   visible: boolean;
   type: 'page' | 'folder';
+  parentId?: string | null; // For tree structure
   gridId?: string;
+  order?: number; // Optional: for sorting order
 }
 
 const db = new Dexie('GridDashboardDB') as Dexie & {
@@ -36,6 +38,11 @@ db.version(2).stores({
 db.version(3).stores({
   layouts: 'id, name, updatedAt',
   pages: 'id, name, path, visible, gridId, type'
+});
+
+db.version(4).stores({
+  layouts: 'id, name, updatedAt',
+  pages: 'id, name, path, visible, gridId, type, parentId'
 });
 
 export type { Layout, Page };
