@@ -68,12 +68,24 @@ export default function GridDashboard() {
 
       const injectDeleteButtons = (nodes: GridStackNode[]) => {
         nodes.forEach(node => {
-          if (node.el && !node.el.querySelector('.delete-widget-btn')) {
-            const btn = document.createElement('button');
-            btn.className = 'delete-widget-btn';
-            btn.innerText = '✕';
-            btn.title = 'Remove';
-            node.el.appendChild(btn);
+          if (node.el) {
+            // Check if THIS node already has a delete button (direct child)
+            // querySelector finds descendants too, which is the bug for containers!
+            let hasBtn = false;
+            for (let i = 0; i < node.el.children.length; i++) {
+                if (node.el.children[i].classList.contains('delete-widget-btn')) {
+                    hasBtn = true;
+                    break;
+                }
+            }
+
+            if (!hasBtn) {
+                const btn = document.createElement('button');
+                btn.className = 'delete-widget-btn';
+                btn.innerText = '✕';
+                btn.title = 'Remove';
+                node.el.appendChild(btn);
+            }
           }
           if (node.subGrid && node.subGrid.engine.nodes) {
              injectDeleteButtons(node.subGrid.engine.nodes);

@@ -19,15 +19,15 @@
 
 .delete-widget-btn {
   position: absolute;
-  top: 8px; /* margin 5px + 3px padding */
-  right: 8px;
+  top: 10px; /* margin 5px + padding, moved slightly inside */
+  right: 10px;
   background: transparent;
   border: none;
   color: #999;
   cursor: pointer;
   font-weight: bold;
   padding: 0 5px;
-  z-index: 90;
+  z-index: 0; /* Lower z-index so nested items (z-index: 1) cover it */
   font-size: 14px;
   display: none; /* Hidden by default */
 }
