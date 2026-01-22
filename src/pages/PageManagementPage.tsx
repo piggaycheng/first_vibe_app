@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  IconButton,
   Button,
   Breadcrumbs,
   Link,
@@ -13,7 +12,8 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  IconButton
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -29,7 +29,7 @@ import { Tree, NodeApi } from 'react-arborist';
 import { db, type Page } from '../db';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AppSnackbar from '../components/AppSnackbar';
-import AddPageDialog, { type NewPageData } from '../components/AddPageDialog';
+import PageFormDialog, { type PageFormData } from '../components/PageFormDialog';
 
 // Data Structure used by Tree (extends DB Page with children)
 interface PageNode extends Omit<Page, 'parentId'> {
@@ -41,8 +41,16 @@ export default function PageManagementPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<PageNode[]>([]);
   
-  // Dialog States
-  const [openAddDialog, setOpenAddDialog] = useState(false);
+  // Dialog State (Unified for Add & Edit)
+  const [dialogState, setDialogState] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    nodeId?: string;
+    initialValues?: PageFormData;
+  }>({
+    open: false,
+    mode: 'add'
+  });
 
   // Delete Dialog State
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; nodeId: string | null; hasChildren: boolean }>({
@@ -76,7 +84,6 @@ export default function PageManagementPage() {
 
     // 1. Create all nodes
     items.forEach(item => {
-      // Ensure we explicitly include parentId for logic, though Tree uses nesting
       map.set(item.id, { ...item, children: [] });
     });
 
@@ -93,26 +100,66 @@ export default function PageManagementPage() {
     return roots;
   };
 
-  const handleAddPage = async (data: NewPageData) => {
+  // Find node helper
+  const findNode = (nodes: PageNode[], targetId: string): PageNode | undefined => {
+    for (const node of nodes) {
+        if (node.id === targetId) return node;
+        if (node.children) {
+            const found = findNode(node.children, targetId);
+            if (found) return found;
+        }
+    }
+    return undefined;
+  };
+
+  const handleOpenAddDialog = () => {
+    setDialogState({
+      open: true,
+      mode: 'add',
+      initialValues: undefined
+    });
+  };
+
+  const handleOpenEditDialog = (nodeId: string) => {
+    const node = findNode(data, nodeId);
+    if (node) {
+      setDialogState({
+        open: true,
+        mode: 'edit',
+        nodeId: nodeId,
+        initialValues: {
+          name: node.name,
+          path: node.path,
+          type: node.type
+        }
+      });
+    }
+  };
+
+  const handleDialogSubmit = async (formData: PageFormData) => {
+    if (dialogState.mode === 'add') {
+      await handleAddPage(formData);
+    } else {
+      await handleUpdatePage(dialogState.nodeId!, formData);
+    }
+  };
+
+  const handleAddPage = async (data: PageFormData) => {
     const id = crypto.randomUUID();
     const newPage: Page = {
       id,
       name: data.name,
-      path: data.type === 'folder' ? '-' : data.path, // Folders don't really have paths usually
-      visible: data.visible,
+      path: data.type === 'folder' ? '-' : data.path,
+      visible: true, // Default to true
       type: data.type,
-      parentId: null, // Default to root
+      parentId: null,
       gridId: ''
     };
 
     try {
       await db.pages.add(newPage);
-      
-      // Update UI state
       await loadPages();
-      
-      // Close and Reset
-      setOpenAddDialog(false);
+      setDialogState({ ...dialogState, open: false });
       setSnackbar({ open: true, message: 'Item created successfully', severity: 'success' });
     } catch (error) {
       console.error("Failed to add page:", error);
@@ -120,13 +167,41 @@ export default function PageManagementPage() {
     }
   };
 
+  const handleUpdatePage = async (id: string, data: PageFormData) => {
+    try {
+      await db.pages.update(id, {
+        name: data.name,
+        path: data.type === 'folder' ? '-' : data.path,
+        type: data.type
+      });
+      await loadPages();
+      setDialogState({ ...dialogState, open: false });
+      setSnackbar({ open: true, message: 'Item updated successfully', severity: 'success' });
+    } catch (error) {
+      console.error("Failed to update page:", error);
+      setSnackbar({ open: true, message: 'Failed to update item', severity: 'error' });
+    }
+  };
+
+  const handleVisibilityChange = async (id: string, visible: boolean) => {
+    try {
+      await db.pages.update(id, { visible });
+      await loadPages();
+      setSnackbar({ open: true, message: `Visibility set to ${visible ? 'Visible' : 'Hidden'}`, severity: 'success' });
+    } catch (error) {
+      console.error("Failed to update visibility:", error);
+      setSnackbar({ open: true, message: 'Failed to update visibility', severity: 'error' });
+    }
+  };
+
   const handleMove = async ({ dragIds, parentId, index }: { dragIds: string[], parentId: string | null, index: number }) => {
-    // 1. Optimistic UI Update
+    // Optimistic UI Update not strictly needed if we reload fast, but good for UX.
+    // However, since we reload from DB immediately after update in other actions, 
+    // we can rely on DB reload here too or keep optimistic logic.
+    // Keeping optimistic logic for smoothness.
     setData(prevData => {
       const newData = JSON.parse(JSON.stringify(prevData)) as PageNode[];
       let movedNode: PageNode | null = null;
-
-      // Recursive remove
       const removeNode = (nodes: PageNode[], id: string): boolean => {
         const i = nodes.findIndex(n => n.id === id);
         if (i !== -1) {
@@ -139,13 +214,10 @@ export default function PageManagementPage() {
         }
         return false;
       };
-
       const id = dragIds[0];
       removeNode(newData, id);
-
       if (!movedNode) return prevData;
 
-      // Insert
       if (parentId === null) {
         newData.splice(index, 0, movedNode);
       } else {
@@ -159,7 +231,6 @@ export default function PageManagementPage() {
           }
           return undefined;
         };
-
         const parent = findNode(newData, parentId);
         if (parent) {
           if (!parent.children) parent.children = [];
@@ -169,18 +240,16 @@ export default function PageManagementPage() {
       return newData;
     });
 
-    // 2. Persist to DB
     const nodeId = dragIds[0];
     try {
       await db.pages.update(nodeId, { parentId: parentId });
     } catch (error) {
       console.error("Failed to update parentId:", error);
-      loadPages(); // Revert on error
+      loadPages();
     }
   };
 
   const deleteRecursive = async (id: string) => {
-    // Find children in DB
     const children = await db.pages.where('parentId').equals(id).toArray();
     for (const child of children) {
         await deleteRecursive(child.id);
@@ -189,21 +258,8 @@ export default function PageManagementPage() {
   };
 
   const handleDeleteClick = (id: string) => {
-    // Find node in local data to check for children
-    const findNode = (nodes: PageNode[], targetId: string): PageNode | undefined => {
-        for (const node of nodes) {
-            if (node.id === targetId) return node;
-            if (node.children) {
-                const found = findNode(node.children, targetId);
-                if (found) return found;
-            }
-        }
-        return undefined;
-    };
-    
     const node = findNode(data, id);
     const hasChildren = node ? (node.children && node.children.length > 0) : false;
-
     setDeleteDialog({ open: true, nodeId: id, hasChildren: !!hasChildren });
   };
 
@@ -221,7 +277,6 @@ export default function PageManagementPage() {
     setDeleteDialog({ open: false, nodeId: null, hasChildren: false });
   };
 
-  // Define column widths to ensure alignment between Header and Body
   const widthConfig = {
     name: '40%',
     path: '30%',
@@ -257,7 +312,7 @@ export default function PageManagementPage() {
             variant="contained" 
             startIcon={<AddIcon />} 
             size="large"
-            onClick={() => setOpenAddDialog(true)}
+            onClick={handleOpenAddDialog}
           >
             Add New Page
           </Button>
@@ -265,7 +320,6 @@ export default function PageManagementPage() {
       </Box>
 
       <Paper sx={{ width: '100%', overflow: 'hidden' }} elevation={2}>
-        {/* MUI Table Header */}
         <TableContainer>
           <Table size="medium">
             <TableHead>
@@ -279,7 +333,6 @@ export default function PageManagementPage() {
           </Table>
         </TableContainer>
 
-        {/* Tree Body */}
         <Box sx={{ height: 600 }}>
           <Tree
             data={data}
@@ -306,7 +359,6 @@ export default function PageManagementPage() {
                     transition: 'background-color 0.2s',
                   }}
                 >
-                  {/* Name Column */}
                   <Box sx={{ width: widthConfig.name, display: 'flex', alignItems: 'center', pl: 2, boxSizing: 'border-box', overflow: 'hidden' }}>
                     <Box
                       ref={dragHandle}
@@ -350,26 +402,24 @@ export default function PageManagementPage() {
                     </Box>
                   </Box>
 
-                  {/* Path Column */}
                   <Box sx={{ width: widthConfig.path, px: 2, boxSizing: 'border-box' }}>
                     <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
                       {node.data.path}
                     </Typography>
                   </Box>
 
-                  {/* Status Column */}
                   <Box sx={{ width: widthConfig.status, px: 2, boxSizing: 'border-box' }}>
                     <Switch
                       checked={node.data.visible}
+                      onChange={(e) => handleVisibilityChange(node.data.id, e.target.checked)}
                       size="small"
                       color="primary"
                     />
                   </Box>
 
-                  {/* Actions Column */}
                   <Box sx={{ width: widthConfig.actions, pr: 4, textAlign: 'right', boxSizing: 'border-box' }}>
                     <Tooltip title="Edit">
-                      <IconButton size="small">
+                      <IconButton size="small" onClick={() => handleOpenEditDialog(node.data.id)}>
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -386,11 +436,14 @@ export default function PageManagementPage() {
         </Box>
       </Paper>
 
-      {/* Add New Page Dialog */}
-      <AddPageDialog 
-        open={openAddDialog} 
-        onClose={() => setOpenAddDialog(false)} 
-        onSubmit={handleAddPage} 
+      {/* Add/Edit Page Dialog */}
+      <PageFormDialog 
+        open={dialogState.open} 
+        onClose={() => setDialogState({ ...dialogState, open: false })} 
+        onSubmit={handleDialogSubmit}
+        initialValues={dialogState.initialValues}
+        title={dialogState.mode === 'add' ? 'Add New Item' : 'Edit Item'}
+        submitLabel={dialogState.mode === 'add' ? 'Create' : 'Save'}
       />
 
       {/* Delete Confirmation Dialog */}

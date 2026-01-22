@@ -10,39 +10,44 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   TextField,
-  FormControlLabel,
-  Checkbox
 } from '@mui/material';
 
-interface AddPageDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (data: NewPageData) => void;
-}
-
-export interface NewPageData {
+export interface PageFormData {
   name: string;
   path: string;
-  visible: boolean;
   type: 'page' | 'folder';
 }
 
-const initialData: NewPageData = {
+interface PageFormDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: PageFormData) => void;
+  initialValues?: PageFormData;
+  title?: string;
+  submitLabel?: string;
+}
+
+const defaultValues: PageFormData = {
   name: '',
   path: '',
-  visible: true,
   type: 'page'
 };
 
-export default function AddPageDialog({ open, onClose, onSubmit }: AddPageDialogProps) {
-  const [data, setData] = useState<NewPageData>(initialData);
+export default function PageFormDialog({ 
+  open, 
+  onClose, 
+  onSubmit, 
+  initialValues, 
+  title = "Add New Item",
+  submitLabel = "Create"
+}: PageFormDialogProps) {
+  const [data, setData] = useState<PageFormData>(defaultValues);
 
-  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setData(initialData);
+      setData(initialValues || defaultValues);
     }
-  }, [open]);
+  }, [open, initialValues]);
 
   const handleSubmit = () => {
     onSubmit(data);
@@ -50,7 +55,7 @@ export default function AddPageDialog({ open, onClose, onSubmit }: AddPageDialog
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Add New Item</DialogTitle>
+      <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -85,17 +90,6 @@ export default function AddPageDialog({ open, onClose, onSubmit }: AddPageDialog
               helperText="e.g. /my-page"
             />
           )}
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={data.visible}
-                onChange={(e) => setData({ ...data, visible: e.target.checked })}
-                color="primary"
-              />
-            }
-            label="Visible"
-          />
         </Box>
       </DialogContent>
       <DialogActions>
@@ -105,7 +99,7 @@ export default function AddPageDialog({ open, onClose, onSubmit }: AddPageDialog
           variant="contained"
           disabled={!data.name || (data.type === 'page' && !data.path)}
         >
-          Create
+          {submitLabel}
         </Button>
       </DialogActions>
     </Dialog>
