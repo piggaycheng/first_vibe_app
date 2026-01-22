@@ -13,7 +13,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -26,6 +33,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNavigate } from 'react-router-dom';
 import { Tree, NodeApi } from 'react-arborist';
+import { db } from '../db';
 
 // Data Structure
 interface PageNode {
@@ -58,6 +66,33 @@ const initialData: PageNode[] = [
 export default function PageManagementPage() {
   const navigate = useNavigate();
   const [data, setData] = useState(initialData);
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [newPageData, setNewPageData] = useState({ name: '', path: '', visible: true });
+
+  const handleAddPage = async () => {
+    const id = crypto.randomUUID();
+    const newPage = {
+      id,
+      name: newPageData.name,
+      path: newPageData.path,
+      visible: newPageData.visible,
+      gridId: '' // Reserved field
+    };
+
+    try {
+      await db.pages.add(newPage);
+      
+      // Update UI state - appending to root for now
+      setData(prev => [...prev, { ...newPage, children: [] }]);
+      
+      // Close and Reset
+      setOpenAddDialog(false);
+      setNewPageData({ name: '', path: '', visible: true });
+    } catch (error) {
+      console.error("Failed to add page:", error);
+      // Ideally show a snackbar here
+    }
+  };
 
   // Define column widths to ensure alignment between Header and Body
   const widthConfig = {
@@ -91,7 +126,12 @@ export default function PageManagementPage() {
               Manage your site structure with drag-and-drop support.
             </Typography>
           </Box>
-          <Button variant="contained" startIcon={<AddIcon />} size="large">
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            size="large"
+            onClick={() => setOpenAddDialog(true)}
+          >
             Add New Page
           </Button>
         </Box>
@@ -270,6 +310,46 @@ export default function PageManagementPage() {
           </Tree>
         </Box>
       </Paper>
+
+      {/* Add New Page Dialog */}
+      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Add New Page</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Page Name"
+              variant="outlined"
+              fullWidth
+              value={newPageData.name}
+              onChange={(e) => setNewPageData({ ...newPageData, name: e.target.value })}
+            />
+            <TextField
+              label="Path"
+              variant="outlined"
+              fullWidth
+              value={newPageData.path}
+              onChange={(e) => setNewPageData({ ...newPageData, path: e.target.value })}
+              helperText="e.g. /my-page"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={newPageData.visible}
+                  onChange={(e) => setNewPageData({ ...newPageData, visible: e.target.checked })}
+                  color="primary"
+                />
+              }
+              label="Visible"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddDialog(false)}>Cancel</Button>
+          <Button onClick={handleAddPage} variant="contained" disabled={!newPageData.name || !newPageData.path}>
+            Add Page
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
