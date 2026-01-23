@@ -14,8 +14,6 @@ import {
 import { useTheme } from '@mui/material/styles';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import FolderIcon from '@mui/icons-material/Folder';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -92,7 +90,7 @@ const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
   };
 
   const CustomIcon = getIconComponent(node.icon);
-  const IconToRender = CustomIcon || (node.type === 'folder' ? FolderIcon : InsertDriveFileIcon);
+  const IconToRender = CustomIcon;
 
   return (
     <>
@@ -102,9 +100,11 @@ const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
           selected={!hasChildren && isSelected}
           sx={{ pl: pl ? pl : undefined }} // Indentation
         >
-          <ListItemIcon>
-            <IconToRender />
-          </ListItemIcon>
+          {IconToRender && (
+            <ListItemIcon>
+              <IconToRender />
+            </ListItemIcon>
+          )}
           <ListItemText primary={node.name} />
           {node.type === 'folder' && hasChildren ? (open ? <ExpandLess /> : <ExpandMore />) : null}
         </ListItemButton>
