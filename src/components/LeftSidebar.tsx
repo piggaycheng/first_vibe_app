@@ -106,13 +106,13 @@ const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
             </ListItemIcon>
           )}
           <ListItemText primary={node.name} />
-          {node.type === 'folder' && hasChildren ? (open ? <ExpandLess /> : <ExpandMore />) : null}
+          {node.type === 'folder' ? (open ? <ExpandLess /> : <ExpandMore />) : null}
         </ListItemButton>
       </ListItem>
-      {node.type === 'folder' && hasChildren && (
+      {node.type === 'folder' && (
         <Collapse in={open} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-             {node.children!.map(child => (
+             {node.children?.map(child => (
                <SidebarItem key={child.id} node={child} pl={pl + 4} />
              ))}
           </List>
