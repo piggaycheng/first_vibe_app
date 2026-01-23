@@ -26,7 +26,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useNavigate } from 'react-router-dom';
 import { Tree, NodeApi } from 'react-arborist';
-import { db, type Page } from '../db';
+import { db, type Page, type Layout } from '../db';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AppSnackbar from '../components/AppSnackbar';
 import PageFormDialog, { type PageFormData } from '../components/PageFormDialog';
@@ -40,6 +40,7 @@ interface PageNode extends Omit<Page, 'parentId'> {
 export default function PageManagementPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<PageNode[]>([]);
+  const [layouts, setLayouts] = useState<Layout[]>([]);
   
   // Dialog State (Unified for Add & Edit)
   const [dialogState, setDialogState] = useState<{
@@ -67,14 +68,18 @@ export default function PageManagementPage() {
   });
 
   // Load Data from DB
-  const loadPages = async () => {
-    const pages = await db.pages.toArray();
+  const loadData = async () => {
+    const [pages, layoutsData] = await Promise.all([
+      db.pages.toArray(),
+      db.layouts.toArray()
+    ]);
     const tree = buildTree(pages);
     setData(tree);
+    setLayouts(layoutsData);
   };
 
   useEffect(() => {
-    loadPages();
+    loadData();
   }, []);
 
   // Helper to reconstruct tree from flat list
@@ -130,7 +135,8 @@ export default function PageManagementPage() {
         initialValues: {
           name: node.name,
           path: node.path,
-          type: node.type
+          type: node.type,
+          gridId: node.gridId
         }
       });
     }
@@ -153,12 +159,12 @@ export default function PageManagementPage() {
       visible: true, // Default to true
       type: data.type,
       parentId: null,
-      gridId: ''
+      gridId: data.gridId || ''
     };
 
     try {
       await db.pages.add(newPage);
-      await loadPages();
+      await loadData();
       setDialogState({ ...dialogState, open: false });
       setSnackbar({ open: true, message: 'Item created successfully', severity: 'success' });
     } catch (error) {
@@ -172,9 +178,10 @@ export default function PageManagementPage() {
       await db.pages.update(id, {
         name: data.name,
         path: data.type === 'folder' ? '-' : data.path,
-        type: data.type
+        type: data.type,
+        gridId: data.gridId || ''
       });
-      await loadPages();
+      await loadData();
       setDialogState({ ...dialogState, open: false });
       setSnackbar({ open: true, message: 'Item updated successfully', severity: 'success' });
     } catch (error) {
@@ -186,7 +193,7 @@ export default function PageManagementPage() {
   const handleVisibilityChange = async (id: string, visible: boolean) => {
     try {
       await db.pages.update(id, { visible });
-      await loadPages();
+      await loadData();
       setSnackbar({ open: true, message: `Visibility set to ${visible ? 'Visible' : 'Hidden'}`, severity: 'success' });
     } catch (error) {
       console.error("Failed to update visibility:", error);
@@ -245,7 +252,7 @@ export default function PageManagementPage() {
       await db.pages.update(nodeId, { parentId: parentId });
     } catch (error) {
       console.error("Failed to update parentId:", error);
-      loadPages();
+      loadData();
     }
   };
 
@@ -267,7 +274,7 @@ export default function PageManagementPage() {
     if (deleteDialog.nodeId) {
         try {
             await deleteRecursive(deleteDialog.nodeId);
-            await loadPages();
+            await loadData();
             setSnackbar({ open: true, message: 'Item deleted successfully', severity: 'success' });
         } catch (error) {
             console.error("Failed to delete:", error);
@@ -441,6 +448,7 @@ export default function PageManagementPage() {
         open={dialogState.open} 
         onClose={() => setDialogState({ ...dialogState, open: false })} 
         onSubmit={handleDialogSubmit}
+        layouts={layouts}
         initialValues={dialogState.initialValues}
         title={dialogState.mode === 'add' ? 'Add New Item' : 'Edit Item'}
         submitLabel={dialogState.mode === 'add' ? 'Create' : 'Save'}

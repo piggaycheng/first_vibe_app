@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { type Layout } from '../db';
 import {
   Dialog,
   DialogTitle,
@@ -10,18 +11,25 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText
 } from '@mui/material';
 
 export interface PageFormData {
   name: string;
   path: string;
   type: 'page' | 'folder';
+  gridId?: string;
 }
 
 interface PageFormDialogProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: PageFormData) => void;
+  layouts: Layout[];
   initialValues?: PageFormData;
   title?: string;
   submitLabel?: string;
@@ -30,13 +38,15 @@ interface PageFormDialogProps {
 const defaultValues: PageFormData = {
   name: '',
   path: '',
-  type: 'page'
+  type: 'page',
+  gridId: ''
 };
 
 export default function PageFormDialog({ 
   open, 
   onClose, 
   onSubmit, 
+  layouts,
   initialValues, 
   title = "Add New Item",
   submitLabel = "Create"
@@ -81,14 +91,36 @@ export default function PageFormDialog({
           />
 
           {data.type === 'page' && (
-            <TextField
-              label="Path"
-              variant="outlined"
-              fullWidth
-              value={data.path}
-              onChange={(e) => setData({ ...data, path: e.target.value })}
-              helperText="e.g. /my-page"
-            />
+            <>
+              <TextField
+                label="Path"
+                variant="outlined"
+                fullWidth
+                value={data.path}
+                onChange={(e) => setData({ ...data, path: e.target.value })}
+                helperText="e.g. /my-page"
+              />
+
+              <FormControl fullWidth>
+                <InputLabel id="layout-select-label">Layout (Grid)</InputLabel>
+                <Select
+                  labelId="layout-select-label"
+                  value={data.gridId || ''}
+                  label="Layout (Grid)"
+                  onChange={(e) => setData({ ...data, gridId: e.target.value })}
+                >
+                  <MenuItem value="">
+                    <em>None (Default)</em>
+                  </MenuItem>
+                  {layouts.map((layout) => (
+                    <MenuItem key={layout.id} value={layout.id}>
+                      {layout.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>Select the grid layout for this page</FormHelperText>
+              </FormControl>
+            </>
           )}
         </Box>
       </DialogContent>
