@@ -61,7 +61,7 @@ const buildTree = (items: Page[]): PageNode[] => {
     const node = map.get(item.id)!;
     if (item.parentId && map.has(item.parentId)) {
       map.get(item.parentId)!.children!.push(node);
-    } else {
+    } else if (!item.parentId) {
       roots.push(node);
     }
   });
