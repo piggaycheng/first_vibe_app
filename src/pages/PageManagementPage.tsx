@@ -137,7 +137,8 @@ export default function PageManagementPage() {
           name: node.name,
           path: node.path,
           type: node.type,
-          gridId: node.gridId
+          gridId: node.gridId,
+          icon: node.icon || ''
         },
         formKey: Date.now()
       });
@@ -162,7 +163,8 @@ export default function PageManagementPage() {
       type: data.type,
       parentId: null,
       gridId: data.gridId || '',
-      order: Date.now() // Add to end of list
+      order: Date.now(), // Add to end of list
+      icon: data.icon || ''
     };
 
     try {
@@ -182,7 +184,8 @@ export default function PageManagementPage() {
         name: data.name,
         path: data.type === 'folder' ? '-' : data.path,
         type: data.type,
-        gridId: data.gridId || ''
+        gridId: data.gridId || '',
+        icon: data.icon || ''
       });
       await loadData();
       setDialogState({ ...dialogState, open: false });
