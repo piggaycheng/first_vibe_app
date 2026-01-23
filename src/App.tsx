@@ -49,6 +49,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 
 import RightSidebar from './components/RightSidebar';
 import DashboardPage from './pages/DashboardPage';
+import WelcomePage from './pages/WelcomePage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import GridManagementPage from './pages/GridManagementPage';
@@ -264,7 +265,9 @@ function App() {
     setAnchorElUser(null);
   };
 
-  const isDashboard = !['/settings', '/analytics', '/grid-management', '/page-management'].some(path => location.pathname.startsWith(path));
+  const isDashboard = !['/', '/settings', '/analytics', '/grid-management', '/page-management'].some(path => 
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+  );
 
   const theme = useMemo(
     () =>
@@ -496,7 +499,7 @@ function App() {
           <DrawerHeader />
           <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
             <Routes>
-              <Route path="/" element={<DashboardPage />} />
+              <Route path="/" element={<WelcomePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />

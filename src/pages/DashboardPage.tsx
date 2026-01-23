@@ -32,20 +32,25 @@ export default function DashboardPage() {
         }
 
         // 3. Fallback:
-        // If we are at root or /dashboard, and didn't find a specific page entry 
-        // (or it had no grid), we fall back to the "latest" behavior for backward compatibility.
-        // OR if the user navigated to a path that doesn't exist in DB, we might want to load nothing or default.
-        // For now, let's keep the "load latest" behavior for root paths to ensure the app isn't empty on start.
-        if (pathname === '/' || pathname === '/dashboard') {
-          await loadLayout();
-        } else {
-           // For other unknown paths, we might want to clear the grid or load an empty one?
-           // But if 'loadLayout()' without args loads the latest, we should be careful.
-           // Let's assume if it's a new page (not in DB yet?) or just a "Dashboard view" of something else.
-           // If we want a truly empty grid for new pages, we would need a clearGrid method.
-           // For now, doing nothing (or loading latest if that's the default behavior of loadLayout) is the safest strictly-minimal change.
-           // However, if the user defines a new page in the menu, it SHOULD be in the DB.
-        }
+        // If no specific page/grid is found, we should load an empty grid to avoid showing random data.
+        // We do this by loading an empty array of items.
+        
+        // However, if we are on /dashboard (and it wasn't in DB), we might want to show empty.
+        // The user explicitly requested: "dashboard page的grid如果沒設定就空白就好不要用第一筆顯示"
+        
+        console.log("No layout found for this path, loading empty grid.");
+        // We can use loadLayout with an empty layout object to clear it, 
+        // OR simpler: just pass an empty list to the store if we had a direct setter, 
+        // but loadLayout takes a Layout object.
+        // Let's create a temporary empty layout object.
+        const emptyLayout = {
+            id: 'empty',
+            name: 'Empty',
+            items: [],
+            updatedAt: new Date()
+        };
+        await loadLayout(emptyLayout);
+
       } catch (error) {
         console.error("Error loading layout for page:", error);
       }
