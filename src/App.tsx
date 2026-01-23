@@ -14,9 +14,12 @@ import {
   ListItemIcon,
   CssBaseline,
   styled,
+  Breadcrumbs,
+  Link as MuiLink,
 } from '@mui/material';
 import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InfoIcon from '@mui/icons-material/Info';
 import AddIcon from '@mui/icons-material/Add';
@@ -30,6 +33,7 @@ import SaveIcon from '@mui/icons-material/Save';
 
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 import RightSidebar from './components/RightSidebar';
 import LeftSidebar from './components/LeftSidebar';
@@ -43,6 +47,7 @@ import SaveLayoutDialog from './components/SaveLayoutDialog';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
 import { useLayoutPersistence } from './hooks/useLayoutPersistence';
+import { db } from './db';
 import './App.css';
 
 const drawerWidth = 240;
@@ -124,6 +129,15 @@ function App() {
   const location = useLocation();
   const { saveLayout, saveSelectedLayout } = useLayoutPersistence();
   const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
+
+  const activePageName = useLiveQuery(
+    async () => {
+      if (location.pathname === '/' || ['/settings', '/analytics', '/grid-management', '/page-management'].includes(location.pathname)) return null;
+      const page = await db.pages.where('path').equals(location.pathname).first();
+      return page?.name;
+    },
+    [location.pathname]
+  );
 
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   
@@ -244,15 +258,39 @@ function App() {
             >
               <MenuIcon />
             </IconButton>
-            <Typography 
-              variant="h6" 
-              noWrap 
-              component="div" 
-              sx={{ flexGrow: 1, cursor: 'pointer' }}
-              onClick={() => navigate('/')}
+            <Breadcrumbs 
+              separator={<NavigateNextIcon fontSize="small" />} 
+              aria-label="breadcrumb"
+              sx={{ flexGrow: 1 }}
             >
-              Nested Gridstack Dashboard
-            </Typography>
+              <MuiLink 
+                underline="hover" 
+                color="inherit" 
+                onClick={() => navigate('/')}
+                sx={{ cursor: 'pointer' }}
+              >
+                Dashboard
+              </MuiLink>
+              {(() => {
+                 // Determine current page name
+                 let name = '';
+                 if (location.pathname === '/settings') name = 'Settings';
+                 else if (location.pathname === '/analytics') name = 'Analytics';
+                 else if (location.pathname === '/grid-management') name = 'Grid Management';
+                 else if (location.pathname === '/page-management') name = 'Page Management';
+                 else if (location.pathname !== '/') {
+                   // Try to find dynamic page name. 
+                   // Note: activePage might be undefined initially due to async useLiveQuery.
+                   // We need to define activePage hook in the component body first.
+                   // Since we can't easily inject hooks inside render, we'll use the one we add below.
+                   return activePageName ? (
+                      <Typography color="text.primary">{activePageName}</Typography>
+                   ) : null;
+                 }
+                 
+                 return name ? <Typography color="text.primary">{name}</Typography> : null;
+              })()}
+            </Breadcrumbs>
 
             <Box sx={{ flexGrow: 1 }} />
 

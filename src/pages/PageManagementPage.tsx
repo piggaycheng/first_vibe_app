@@ -4,8 +4,6 @@ import {
   Typography,
   Paper,
   Button,
-  Breadcrumbs,
-  Link,
   Switch,
   Tooltip,
   Table,
@@ -18,13 +16,11 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import HomeIcon from '@mui/icons-material/Home';
 import FolderIcon from '@mui/icons-material/Folder';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import { useNavigate } from 'react-router-dom';
 import { Tree, NodeApi } from 'react-arborist';
 import { db, type Page, type Layout } from '../db';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -38,7 +34,6 @@ interface PageNode extends Omit<Page, 'parentId'> {
 }
 
 export default function PageManagementPage() {
-  const navigate = useNavigate();
   const [data, setData] = useState<PageNode[]>([]);
   const [layouts, setLayouts] = useState<Layout[]>([]);
   
@@ -336,18 +331,6 @@ export default function PageManagementPage() {
   return (
     <Box sx={{ p: 1 }}>
       <Box sx={{ mb: 3 }}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <Link
-            underline="hover"
-            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-            color="inherit"
-            onClick={() => navigate('/')}
-          >
-            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-            Dashboard
-          </Link>
-          <Typography color="text.primary">Page Management</Typography>
-        </Breadcrumbs>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
