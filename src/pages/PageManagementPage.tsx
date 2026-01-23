@@ -207,32 +207,34 @@ export default function PageManagementPage() {
   };
 
   const handleMove = async ({ dragIds, parentId, index }: { dragIds: string[], parentId: string | null, index: number }) => {
-    // Optimistic UI Update not strictly needed if we reload fast, but good for UX.
-    // However, since we reload from DB immediately after update in other actions, 
-    // we can rely on DB reload here too or keep optimistic logic.
-    // Keeping optimistic logic for smoothness.
+    // Optimistic UI Update
     setData(prevData => {
       const newData = JSON.parse(JSON.stringify(prevData)) as PageNode[];
       let movedNode: PageNode | null = null;
-      const removeNode = (nodes: PageNode[], id: string): boolean => {
-        const i = nodes.findIndex(n => n.id === id);
+      let sourceParentChildren: PageNode[] | null = null;
+      let sourceIndex = -1;
+
+      // 1. Find and remove the node from its original position
+      const findAndRemove = (nodes: PageNode[]): boolean => {
+        const i = nodes.findIndex(n => n.id === dragIds[0]);
         if (i !== -1) {
           movedNode = nodes[i];
+          sourceParentChildren = nodes;
+          sourceIndex = i;
           nodes.splice(i, 1);
           return true;
         }
         for (const node of nodes) {
-          if (node.children && removeNode(node.children, id)) return true;
+          if (node.children && findAndRemove(node.children)) return true;
         }
         return false;
       };
-      const id = dragIds[0];
-      removeNode(newData, id);
-      if (!movedNode) return prevData;
 
-      if (parentId === null) {
-        newData.splice(index, 0, movedNode);
-      } else {
+      if (!findAndRemove(newData) || !movedNode) return prevData;
+
+      // 2. Determine target array
+      let targetChildren: PageNode[] = newData;
+      if (parentId !== null) {
         const findNode = (nodes: PageNode[], targetId: string): PageNode | undefined => {
           for (const node of nodes) {
             if (node.id === targetId) return node;
@@ -246,9 +248,25 @@ export default function PageManagementPage() {
         const parent = findNode(newData, parentId);
         if (parent) {
           if (!parent.children) parent.children = [];
-          parent.children.splice(index, 0, movedNode);
+          targetChildren = parent.children;
+        } else {
+            // Parent not found (shouldn't happen ideally)
+            return prevData;
         }
       }
+
+      // 3. Adjust index if moving within the same list and moving downwards
+      // Since we removed the item, subsequent indices shifted down by 1.
+      // If the target index is greater than source index, we need to decrement it.
+      // Note: sourceParentChildren and targetChildren are references to arrays in newData
+      let finalIndex = index;
+      if (sourceParentChildren === targetChildren && sourceIndex < index) {
+        finalIndex = Math.max(0, index - 1);
+      }
+
+      // 4. Insert at new position
+      targetChildren.splice(finalIndex, 0, movedNode);
+      
       return newData;
     });
 
