@@ -23,16 +23,21 @@ import {
   Tooltip,
   tooltipClasses,
   type TooltipProps,
-  styled
+  styled,
+  Popover,
+  IconButton,
+  Divider
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { iconMap, getIconComponent } from '../utils/iconMap';
 
 export interface PageFormData {
   name: string;
   path: string;
   type: 'page' | 'folder';
   gridId?: string;
+  icon?: string;
 }
 
 interface PageFormDialogProps {
@@ -49,7 +54,8 @@ const defaultValues: PageFormData = {
   name: '',
   path: '',
   type: 'page',
-  gridId: ''
+  gridId: '',
+  icon: ''
 };
 
 // Custom styled tooltip for the image preview
@@ -77,16 +83,36 @@ export default function PageFormDialog({
   submitLabel = "Create"
 }: PageFormDialogProps) {
   const [data, setData] = useState<PageFormData>(initialValues || defaultValues);
+  
+  // Icon Picker State
+  const [iconAnchorEl, setIconAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const handleSubmit = () => {
     onSubmit(data);
   };
   
+  const handleIconClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setIconAnchorEl(event.currentTarget);
+  };
+
+  const handleIconClose = () => {
+    setIconAnchorEl(null);
+  };
+
+  const handleSelectIcon = (iconName: string) => {
+    setData({ ...data, icon: iconName });
+    handleIconClose();
+  };
+
   const selectedLayoutName = useMemo(() => {
     if (!data.gridId) return 'Empty / Default';
     const layout = layouts.find(l => l.id === data.gridId);
     return layout ? layout.name : 'Unknown';
   }, [data.gridId, layouts]);
+
+  const CurrentIcon = getIconComponent(data.icon) || (data.type === 'folder' ? DashboardIcon : DashboardIcon); // Fallback just for display button if empty
+  
+  const iconPopoverOpen = Boolean(iconAnchorEl);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -107,13 +133,93 @@ export default function PageFormDialog({
             </ToggleButtonGroup>
           </Box>
 
-          <TextField
-            label="Name"
-            variant="outlined"
-            fullWidth
-            value={data.name}
-            onChange={(e) => setData({ ...data, name: e.target.value })}
-          />
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box>
+               <Tooltip title="Select Icon">
+                 <Button 
+                   variant="outlined" 
+                   onClick={handleIconClick}
+                   sx={{ 
+                     minWidth: 56, 
+                     height: 56, 
+                     p: 0,
+                     display: 'flex',
+                     flexDirection: 'column',
+                     textTransform: 'none',
+                     borderColor: 'rgba(0, 0, 0, 0.23)', // Match default TextField border
+                     color: 'rgba(0, 0, 0, 0.87)' 
+                   }}
+                 >
+                   {data.icon ? (
+                      <CurrentIcon fontSize="large" color="action" />
+                   ) : (
+                      <Typography variant="caption" color="text.secondary">Icon</Typography>
+                   )}
+                 </Button>
+               </Tooltip>
+               <Popover
+                  open={iconPopoverOpen}
+                  anchorEl={iconAnchorEl}
+                  onClose={handleIconClose}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                  }}
+                  PaperProps={{
+                    sx: { width: 320, maxHeight: 400, overflowY: 'auto' }
+                  }}
+                >
+                  <Box sx={{ p: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>Select Icon</Typography>
+                    <Divider sx={{ mb: 2 }} />
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1 }}>
+                       {/* Option to clear icon */}
+                       <Tooltip title="None (Default)">
+                         <IconButton 
+                           onClick={() => handleSelectIcon('')}
+                           color={data.icon === '' ? 'primary' : 'default'}
+                           sx={{ border: data.icon === '' ? '1px solid' : 'none' }}
+                         >
+                           <Box sx={{ width: 24, height: 24, border: '1px dashed #ccc', borderRadius: '50%' }} />
+                         </IconButton>
+                       </Tooltip>
+                       
+                       {Object.keys(iconMap).map((iconName) => {
+                         const Icon = iconMap[iconName];
+                         const isSelected = data.icon === iconName;
+                         return (
+                           <Tooltip title={iconName} key={iconName}>
+                             <IconButton 
+                               onClick={() => handleSelectIcon(iconName)}
+                               color={isSelected ? 'primary' : 'default'}
+                               sx={{ 
+                                 border: isSelected ? '1px solid' : 'none',
+                                 bgcolor: isSelected ? 'action.selected' : 'transparent'
+                               }}
+                             >
+                               <Icon />
+                             </IconButton>
+                           </Tooltip>
+                         );
+                       })}
+                    </Box>
+                  </Box>
+                </Popover>
+            </Box>
+
+            <TextField
+              label="Name"
+              variant="outlined"
+              fullWidth
+              value={data.name}
+              onChange={(e) => setData({ ...data, name: e.target.value })}
+              sx={{ flexGrow: 1 }}
+            />
+          </Box>
 
           {data.type === 'page' && (
             <>

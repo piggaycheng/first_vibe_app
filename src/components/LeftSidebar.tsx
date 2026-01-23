@@ -27,6 +27,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 
 import { useUIStore } from '../store/useUIStore';
 import { db, type Page } from '../db';
+import { getIconComponent } from '../utils/iconMap';
 
 interface LeftSidebarProps {
   width: number;
@@ -72,7 +73,7 @@ const buildTree = (items: Page[]): PageNode[] => {
 
 const emptyPages: Page[] = [];
 
-// Sidebar Item Component
+// SidebarItem Component
 const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -90,6 +91,9 @@ const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
     }
   };
 
+  const CustomIcon = getIconComponent(node.icon);
+  const IconToRender = CustomIcon || (node.type === 'folder' ? FolderIcon : InsertDriveFileIcon);
+
   return (
     <>
       <ListItem disablePadding>
@@ -99,7 +103,7 @@ const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
           sx={{ pl: pl ? pl : undefined }} // Indentation
         >
           <ListItemIcon>
-            {node.type === 'folder' ? <FolderIcon /> : <InsertDriveFileIcon />}
+            <IconToRender />
           </ListItemIcon>
           <ListItemText primary={node.name} />
           {node.type === 'folder' && hasChildren ? (open ? <ExpandLess /> : <ExpandMore />) : null}
