@@ -6,26 +6,17 @@ import {
   Typography,
   Button,
   IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  CssBaseline,
-  styled,
   Divider,
   Tooltip,
-  Switch,
   Avatar,
   Menu,
   MenuItem,
-  Collapse,
+  ListItemIcon,
+  CssBaseline,
+  styled,
 } from '@mui/material';
 import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InfoIcon from '@mui/icons-material/Info';
 import AddIcon from '@mui/icons-material/Add';
@@ -34,20 +25,14 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import DownloadIcon from '@mui/icons-material/Download';
 import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
 import WebIcon from '@mui/icons-material/Web';
-import FolderIcon from '@mui/icons-material/Folder';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
 
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 
 import RightSidebar from './components/RightSidebar';
+import LeftSidebar from './components/LeftSidebar';
 import DashboardPage from './pages/DashboardPage';
 import WelcomePage from './pages/WelcomePage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -58,7 +43,6 @@ import SaveLayoutDialog from './components/SaveLayoutDialog';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
 import { useLayoutPersistence } from './hooks/useLayoutPersistence';
-import { db, type Page } from './db';
 import './App.css';
 
 const drawerWidth = 240;
@@ -67,12 +51,6 @@ const rightDrawerWidth = 240;
 // Custom AppBar Interface
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
-}
-
-// Data Structure used by Tree
-interface PageNode extends Omit<Page, 'parentId'> {
-  parentId?: string | null;
-  children?: PageNode[];
 }
 
 // Styled AppBar that shifts when drawer opens
@@ -130,77 +108,6 @@ const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' && pr
   }),
 }));
 
-// Helper to reconstruct tree from flat list
-const buildTree = (items: Page[]): PageNode[] => {
-  const map = new Map<string, PageNode>();
-  const roots: PageNode[] = [];
-
-  // 1. Create all nodes
-  items.forEach(item => {
-    map.set(item.id, { ...item, children: [] });
-  });
-
-  // 2. Link them
-  items.forEach(item => {
-    const node = map.get(item.id)!;
-    if (item.parentId && map.has(item.parentId)) {
-      map.get(item.parentId)!.children!.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-
-  return roots;
-};
-
-const emptyPages: Page[] = [];
-
-// Sidebar Item Component
-const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [open, setOpen] = useState(false);
-  
-  const hasChildren = node.children && node.children.length > 0;
-  // Simple matching: current path equals node path
-  const isSelected = location.pathname === node.path;
-
-  const handleClick = () => {
-    if (node.type === 'folder') {
-      setOpen(!open);
-    } else {
-      navigate(node.path);
-    }
-  };
-
-  return (
-    <>
-      <ListItem disablePadding>
-        <ListItemButton 
-          onClick={handleClick} 
-          selected={!hasChildren && isSelected}
-          sx={{ pl: pl ? pl : undefined }} // Indentation
-        >
-          <ListItemIcon>
-            {node.type === 'folder' ? <FolderIcon /> : <InsertDriveFileIcon />}
-          </ListItemIcon>
-          <ListItemText primary={node.name} />
-          {node.type === 'folder' && hasChildren ? (open ? <ExpandLess /> : <ExpandMore />) : null}
-        </ListItemButton>
-      </ListItem>
-      {node.type === 'folder' && hasChildren && (
-        <Collapse in={open} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-             {node.children!.map(child => (
-               <SidebarItem key={child.id} node={child} pl={pl + 4} />
-             ))}
-          </List>
-        </Collapse>
-      )}
-    </>
-  );
-};
-
 function App() {
   const {
     leftSidebarOpen: open,
@@ -210,7 +117,6 @@ function App() {
     toggleLeftSidebar: handleDrawerToggle,
     toggleRightSidebar: handleRightDrawerToggle,
     toggleEditMode,
-    toggleTheme
   } = useUIStore();
 
   const addCommand = useGridStore((state) => state.addCommand);
@@ -224,16 +130,6 @@ function App() {
   // Save Dialog State
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveType, setSaveType] = useState<'all' | 'selected'>('all');
-
-  // Load Pages from DB
-  const pages = useLiveQuery(async () => {
-    const allPages = await db.pages.toArray();
-    return allPages
-      .filter(p => p.visible)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [], emptyPages);
-
-  const tree = useMemo(() => buildTree(pages), [pages]);
 
   const handleOpenSaveDialog = (type: 'all' | 'selected') => {
     setSaveType(type);
@@ -448,52 +344,7 @@ function App() {
           </Toolbar>
         </AppBar>
 
-        <Drawer
-          sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              boxSizing: 'border-box',
-              display: 'flex',
-              flexDirection: 'column',
-            },
-          }}
-          variant="persistent"
-          anchor="left"
-          open={open}
-        >
-          <DrawerHeader>
-            <IconButton onClick={handleDrawerToggle}>
-              {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-            </IconButton>
-          </DrawerHeader>
-          <Divider />
-          <List sx={{ flexGrow: 1 }}>
-            {tree.map((node) => (
-              <SidebarItem key={node.id} node={node} />
-            ))}
-          </List>
-
-          <Divider />
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton onClick={toggleTheme}>
-                <ListItemIcon>
-                  {themeMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-                </ListItemIcon>
-                <ListItemText primary={themeMode === 'dark' ? "Light Mode" : "Dark Mode"} />
-                <Switch
-                  checked={themeMode === 'dark'}
-                  onChange={toggleTheme}
-                  onClick={(e) => e.stopPropagation()}
-                  inputProps={{ 'aria-label': 'toggle theme' }}
-                  size="small"
-                />
-              </ListItemButton>
-            </ListItem>
-          </List>
-        </Drawer>
+        <LeftSidebar width={drawerWidth} />
 
         <Main open={open} rightOpen={rightOpen}>
           <DrawerHeader />
