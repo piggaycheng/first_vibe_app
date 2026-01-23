@@ -16,6 +16,12 @@ interface RightSidebarProps {
   width: number;
 }
 
+interface TreeNode {
+  id: string;
+  name: string;
+  children?: TreeNode[];
+}
+
 export default function RightSidebar({ open, width }: RightSidebarProps) {
   const gridItems = useGridStore((state) => state.gridItems);
   const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
@@ -81,7 +87,7 @@ export default function RightSidebar({ open, width }: RightSidebarProps) {
           disableDrop={!isEditMode}
         >
           {/* Node Renderer */}
-          {({ node, style, dragHandle }: { node: NodeApi<any>, style: React.CSSProperties, dragHandle?: any }) => {
+          {({ node, style, dragHandle }: { node: NodeApi<TreeNode>, style: React.CSSProperties, dragHandle?: (el: HTMLDivElement | null) => void }) => {
              // Determine Icon
              const Icon = node.isLeaf 
                ? WidgetsIcon 

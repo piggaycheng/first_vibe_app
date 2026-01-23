@@ -152,6 +152,8 @@ const buildTree = (items: Page[]): PageNode[] => {
   return roots;
 };
 
+const emptyPages: Page[] = [];
+
 // Sidebar Item Component
 const SidebarItem = ({ node, pl = 0 }: { node: PageNode; pl?: number }) => {
   const navigate = useNavigate();
@@ -229,7 +231,8 @@ function App() {
   const pages = useLiveQuery(async () => {
     const allPages = await db.pages.toArray();
     return allPages.filter(p => p.visible);
-  }) || [];
+  }, [], emptyPages);
+
   const tree = useMemo(() => buildTree(pages), [pages]);
 
   const handleOpenSaveDialog = (type: 'all' | 'selected') => {

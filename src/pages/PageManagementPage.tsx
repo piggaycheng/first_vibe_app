@@ -48,9 +48,11 @@ export default function PageManagementPage() {
     mode: 'add' | 'edit';
     nodeId?: string;
     initialValues?: PageFormData;
+    formKey: number;
   }>({
     open: false,
-    mode: 'add'
+    mode: 'add',
+    formKey: Date.now()
   });
 
   // Delete Dialog State
@@ -66,21 +68,6 @@ export default function PageManagementPage() {
     message: '',
     severity: 'success'
   });
-
-  // Load Data from DB
-  const loadData = async () => {
-    const [pages, layoutsData] = await Promise.all([
-      db.pages.toArray(),
-      db.layouts.toArray()
-    ]);
-    const tree = buildTree(pages);
-    setData(tree);
-    setLayouts(layoutsData);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   // Helper to reconstruct tree from flat list
   const buildTree = (items: Page[]): PageNode[] => {
@@ -117,11 +104,28 @@ export default function PageManagementPage() {
     return undefined;
   };
 
+  // Load Data from DB
+  const loadData = async () => {
+    const [pages, layoutsData] = await Promise.all([
+      db.pages.toArray(),
+      db.layouts.toArray()
+    ]);
+    const tree = buildTree(pages);
+    setData(tree);
+    setLayouts(layoutsData);
+  };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleOpenAddDialog = () => {
     setDialogState({
       open: true,
       mode: 'add',
-      initialValues: undefined
+      initialValues: undefined,
+      formKey: Date.now()
     });
   };
 
@@ -137,7 +141,8 @@ export default function PageManagementPage() {
           path: node.path,
           type: node.type,
           gridId: node.gridId
-        }
+        },
+        formKey: Date.now()
       });
     }
   };
@@ -352,7 +357,7 @@ export default function PageManagementPage() {
             padding={0}
             rowClassName="tree-row"
           >
-            {({ node, style, dragHandle }: { node: NodeApi<PageNode>, style: React.CSSProperties, dragHandle?: any }) => (
+            {({ node, style, dragHandle }: { node: NodeApi<PageNode>, style: React.CSSProperties, dragHandle?: (el: HTMLDivElement | null) => void }) => (
               <div style={{ ...style, paddingLeft: 0, height: '100%' }}>
                 <Box
                   sx={{
@@ -445,6 +450,7 @@ export default function PageManagementPage() {
 
       {/* Add/Edit Page Dialog */}
       <PageFormDialog 
+        key={dialogState.formKey}
         open={dialogState.open} 
         onClose={() => setDialogState({ ...dialogState, open: false })} 
         onSubmit={handleDialogSubmit}

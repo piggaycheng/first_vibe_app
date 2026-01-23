@@ -76,13 +76,7 @@ export default function PageFormDialog({
   title = "Add New Item",
   submitLabel = "Create"
 }: PageFormDialogProps) {
-  const [data, setData] = useState<PageFormData>(defaultValues);
-
-  useEffect(() => {
-    if (open) {
-      setData(initialValues || defaultValues);
-    }
-  }, [open, initialValues]);
+  const [data, setData] = useState<PageFormData>(initialValues || defaultValues);
 
   const handleSubmit = () => {
     onSubmit(data);
@@ -205,6 +199,9 @@ function LayoutCard({ name, selected, onClick, thumbnailBlob }: LayoutCardProps)
   useEffect(() => {
     if (thumbnailBlob) {
       const url = URL.createObjectURL(thumbnailBlob);
+      // We need to set state here to render the image. 
+      // This is a necessary side effect of converting Blob to URL.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setImageUrl(url);
       return () => URL.revokeObjectURL(url);
     } else {

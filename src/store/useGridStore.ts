@@ -8,7 +8,7 @@ export interface GridCommand {
   payload: {
     nodeId?: string; // Optional for ADD (generated internally or passed)
     targetParentId?: string | null;
-    widgetOptions?: any; // For ADD_WIDGET
+    widgetOptions?: GridStackWidget | GridStackWidget[]; // For ADD_WIDGET
   };
 }
 

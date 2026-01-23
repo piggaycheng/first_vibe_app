@@ -98,7 +98,7 @@ export default function GridDashboard() {
       const syncToStore = () => {
         if (gridRef.current) {
           const layout = gridRef.current.save();
-          setGridItems(layout as any);
+          setGridItems(layout as GridStackWidget[]);
         }
       };
 
@@ -111,6 +111,7 @@ export default function GridDashboard() {
       gridRef.current.on('added', handleAdded);
       gridRef.current.on('removed', syncToStore);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Command Processor
@@ -129,8 +130,8 @@ export default function GridDashboard() {
             const parentEl = document.querySelector(`.grid-stack-item[gs-id="${targetParentId}"]`);
             if (parentEl) {
               const subGridEl = parentEl.querySelector('.grid-stack');
-              if (subGridEl && (subGridEl as any).gridstack) {
-                targetGrid = (subGridEl as any).gridstack;
+              if (subGridEl && (subGridEl as unknown as { gridstack: GridStack }).gridstack) {
+                targetGrid = (subGridEl as unknown as { gridstack: GridStack }).gridstack;
               }
             }
           }
@@ -157,7 +158,7 @@ export default function GridDashboard() {
             if (nodeData) {
               // 2. Remove the old widget completely (including DOM)
               //    This prevents duplication and ensures a clean state.
-              const gridNode = (widgetEl as any).gridstackNode;
+              const gridNode = (widgetEl as unknown as { gridstackNode: GridStackNode }).gridstackNode;
               const sourceGrid = gridNode?.grid;
               if (sourceGrid) {
                 sourceGrid.removeWidget(widgetEl, true); // true = remove DOM
@@ -183,7 +184,7 @@ export default function GridDashboard() {
               setTimeout(() => {
                  if (gridRef.current) {
                    const layout = gridRef.current.save();
-                   setGridItems(layout as any);
+                   setGridItems(layout as GridStackWidget[]);
                  }
               }, 0);
             } else {
@@ -196,7 +197,7 @@ export default function GridDashboard() {
         const { nodeId } = payload;
         const widgetEl = document.querySelector(`.grid-stack-item[gs-id="${nodeId}"]`);
         if (widgetEl) {
-           const gridNode = (widgetEl as any).gridstackNode;
+           const gridNode = (widgetEl as unknown as { gridstackNode: GridStackNode }).gridstackNode;
            if (gridNode && gridNode.grid) {
              gridNode.grid.removeWidget(widgetEl);
            }
@@ -228,6 +229,7 @@ export default function GridDashboard() {
 
       clearCommand();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingCommand, clearCommand]);
 
   // Global Click Listener for Delete
