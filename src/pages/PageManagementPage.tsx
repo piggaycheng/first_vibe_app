@@ -110,6 +110,8 @@ export default function PageManagementPage() {
       db.pages.toArray(),
       db.layouts.toArray()
     ]);
+    // Sort by order
+    pages.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const tree = buildTree(pages);
     setData(tree);
     setLayouts(layoutsData);
@@ -164,7 +166,8 @@ export default function PageManagementPage() {
       visible: true, // Default to true
       type: data.type,
       parentId: null,
-      gridId: data.gridId || ''
+      gridId: data.gridId || '',
+      order: Date.now() // Add to end of list
     };
 
     try {
@@ -207,7 +210,9 @@ export default function PageManagementPage() {
   };
 
   const handleMove = async ({ dragIds, parentId, index }: { dragIds: string[], parentId: string | null, index: number }) => {
-    // Optimistic UI Update
+    // We calculate the new state and side-effects first
+    let targetChildrenToUpdate: PageNode[] = [];
+    
     setData(prevData => {
       const newData = JSON.parse(JSON.stringify(prevData)) as PageNode[];
       let movedNode: PageNode | null = null;
@@ -250,32 +255,46 @@ export default function PageManagementPage() {
           if (!parent.children) parent.children = [];
           targetChildren = parent.children;
         } else {
-            // Parent not found (shouldn't happen ideally)
             return prevData;
         }
       }
 
       // 3. Adjust index if moving within the same list and moving downwards
-      // Since we removed the item, subsequent indices shifted down by 1.
-      // If the target index is greater than source index, we need to decrement it.
-      // Note: sourceParentChildren and targetChildren are references to arrays in newData
       let finalIndex = index;
       if (sourceParentChildren === targetChildren && sourceIndex < index) {
         finalIndex = Math.max(0, index - 1);
       }
 
       // 4. Insert at new position
-      targetChildren.splice(finalIndex, 0, movedNode);
+      // Update the moved node's data
+      if (movedNode) {
+        (movedNode as PageNode).parentId = parentId; // Update internal object
+        targetChildren.splice(finalIndex, 0, movedNode as PageNode);
+        // Capture the affected list for DB update
+        targetChildrenToUpdate = targetChildren;
+      }
       
       return newData;
     });
 
-    const nodeId = dragIds[0];
-    try {
-      await db.pages.update(nodeId, { parentId: parentId });
-    } catch (error) {
-      console.error("Failed to update parentId:", error);
-      loadData();
+    // Update DB
+    // We update the order for ALL siblings in the target list to ensure consistency
+    if (targetChildrenToUpdate.length > 0) {
+        try {
+            const updates = targetChildrenToUpdate.map((node, i) => ({
+                id: node.id,
+                changes: { 
+                    order: i, 
+                    parentId: parentId // Ensure parentId is correct for all (mainly for the moved one)
+                }
+            }));
+            
+            await Promise.all(updates.map(u => db.pages.update(u.id, u.changes)));
+            setSnackbar({ open: true, message: 'Order updated successfully', severity: 'success' });
+        } catch (error) {
+            console.error("Failed to update order:", error);
+            loadData(); // Revert on error
+        }
     }
   };
 

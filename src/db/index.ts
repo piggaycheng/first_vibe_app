@@ -45,5 +45,10 @@ db.version(4).stores({
   pages: 'id, name, path, visible, gridId, type, parentId'
 });
 
+db.version(5).stores({
+  layouts: 'id, name, updatedAt',
+  pages: 'id, name, path, visible, gridId, type, parentId, order'
+});
+
 export type { Layout, Page };
 export { db };

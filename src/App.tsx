@@ -227,7 +227,9 @@ function App() {
   // Load Pages from DB
   const pages = useLiveQuery(async () => {
     const allPages = await db.pages.toArray();
-    return allPages.filter(p => p.visible);
+    return allPages
+      .filter(p => p.visible)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [], emptyPages);
 
   const tree = useMemo(() => buildTree(pages), [pages]);
