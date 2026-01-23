@@ -161,7 +161,7 @@ export default function GridDashboard() {
               const gridNode = (widgetEl as unknown as { gridstackNode: GridStackNode }).gridstackNode;
               const sourceGrid = gridNode?.grid;
               if (sourceGrid) {
-                sourceGrid.removeWidget(widgetEl, true); // true = remove DOM
+                sourceGrid.removeWidget(widgetEl as HTMLElement, true); // true = remove DOM
               }
 
               // 3. Prepare new widget options
@@ -199,13 +199,13 @@ export default function GridDashboard() {
         if (widgetEl) {
            const gridNode = (widgetEl as unknown as { gridstackNode: GridStackNode }).gridstackNode;
            if (gridNode && gridNode.grid) {
-             gridNode.grid.removeWidget(widgetEl);
+             gridNode.grid.removeWidget(widgetEl as HTMLElement);
            }
         }
       }
       else if (type === 'ADD_WIDGET') {
         const { widgetOptions } = payload;
-        gridRef.current.addWidget(widgetOptions);
+        gridRef.current.addWidget(widgetOptions as GridStackWidget);
       }
       else if (type === 'EXPORT_LAYOUT') {
         const layout = gridRef.current.save();
@@ -223,8 +223,8 @@ export default function GridDashboard() {
       else if (type === 'LOAD_LAYOUT') {
         const { widgetOptions } = payload;
         gridRef.current.removeAll();
-        gridRef.current.load(widgetOptions);
-        setGridItems(widgetOptions);
+        gridRef.current.load(widgetOptions as GridStackWidget[]);
+        setGridItems(widgetOptions as GridStackWidget[]);
       }
 
       clearCommand();

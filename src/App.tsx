@@ -44,7 +44,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import SaveIcon from '@mui/icons-material/Save';
 
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import RightSidebar from './components/RightSidebar';
@@ -208,8 +208,6 @@ function App() {
     themeMode,
     toggleLeftSidebar: handleDrawerToggle,
     toggleRightSidebar: handleRightDrawerToggle,
-    setRightSidebar,
-    setEditMode,
     toggleEditMode,
     toggleTheme
   } = useUIStore();
@@ -217,9 +215,8 @@ function App() {
   const addCommand = useGridStore((state) => state.addCommand);
   const navigate = useNavigate();
   const location = useLocation();
-  const { saveLayout, saveSelectedLayout, loadLayout } = useLayoutPersistence();
+  const { saveLayout, saveSelectedLayout } = useLayoutPersistence();
   const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
-  const lastLoadedLayoutId = useGridStore((state) => state.lastLoadedLayoutId);
 
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   
@@ -265,18 +262,7 @@ function App() {
     setAnchorElUser(null);
   };
 
-  const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
-
-  useEffect(() => {
-    if (isDashboard) {
-      setEditMode(false); 
-      if (!lastLoadedLayoutId) {
-        loadLayout();
-      }
-    } else {
-      setRightSidebar(false);
-    }
-  }, [isDashboard, loadLayout, setRightSidebar, lastLoadedLayoutId, setEditMode]);
+  const isDashboard = !['/settings', '/analytics', '/grid-management', '/page-management'].some(path => location.pathname.startsWith(path));
 
   const theme = useMemo(
     () =>
@@ -514,6 +500,7 @@ function App() {
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/grid-management" element={<GridManagementPage />} />
               <Route path="/page-management" element={<PageManagementPage />} />
+              <Route path="*" element={<DashboardPage />} />
             </Routes>
           </Box>
         </Main>
