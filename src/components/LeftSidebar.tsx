@@ -10,6 +10,10 @@ import {
   Collapse,
   IconButton,
   styled,
+  Card,
+  CardContent,
+  Typography,
+  Box,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -18,6 +22,14 @@ import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+
+// Widget Icons
+import BarChartIcon from '@mui/icons-material/BarChart';
+import PieChartIcon from '@mui/icons-material/PieChart';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import DescriptionIcon from '@mui/icons-material/Description';
+import ImageIcon from '@mui/icons-material/Image';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMemo, useState } from 'react';
@@ -36,6 +48,16 @@ interface PageNode extends Omit<Page, 'parentId'> {
   parentId?: string | null;
   children?: PageNode[];
 }
+
+// Widget Definition
+const availableWidgets = [
+  { type: 'bar', name: 'Bar Chart', icon: BarChartIcon },
+  { type: 'pie', name: 'Pie Chart', icon: PieChartIcon },
+  { type: 'line', name: 'Line Chart', icon: ShowChartIcon },
+  { type: 'table', name: 'Table', icon: TableChartIcon },
+  { type: 'text', name: 'Text Block', icon: DescriptionIcon },
+  { type: 'image', name: 'Image', icon: ImageIcon },
+];
 
 const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
@@ -127,6 +149,7 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
   const {
     leftSidebarOpen: open,
     themeMode,
+    isEditMode,
     toggleLeftSidebar: handleDrawerToggle,
     toggleTheme
   } = useUIStore();
@@ -163,11 +186,35 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
         </IconButton>
       </DrawerHeader>
       <Divider />
-      <List sx={{ flexGrow: 1 }}>
-        {tree.map((node) => (
-          <SidebarItem key={node.id} node={node} />
-        ))}
-      </List>
+      
+      {isEditMode ? (
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', flexGrow: 1 }}>
+           <Typography variant="subtitle2" color="text.secondary">
+             Components
+           </Typography>
+           {availableWidgets.map((widget) => (
+             <Card
+                key={widget.type}
+                variant="outlined"
+                sx={{
+                  cursor: 'grab',
+                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
+                }}
+             >
+               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 }, px: 2 }}>
+                  <widget.icon color="action" />
+                  <Typography variant="body2" fontWeight="medium">{widget.name}</Typography>
+               </CardContent>
+             </Card>
+           ))}
+        </Box>
+      ) : (
+        <List sx={{ flexGrow: 1 }}>
+          {tree.map((node) => (
+            <SidebarItem key={node.id} node={node} />
+          ))}
+        </List>
+      )}
 
       <Divider />
       <List>
