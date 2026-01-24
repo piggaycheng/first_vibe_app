@@ -196,6 +196,18 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
              <Card
                 key={widget.type}
                 variant="outlined"
+                className="new-widget"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', JSON.stringify({
+                     type: widget.type,
+                     title: widget.name
+                  }));
+                  // GridStack uses these attributes if set on the dragged element,
+                  // but for "new-widget" class dragIn, it often reads attributes from the element itself
+                  // or uses the helper.
+                  // Setting dataTransfer is good practice for custom handlers.
+                }}
                 sx={{
                   cursor: 'grab',
                   '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
