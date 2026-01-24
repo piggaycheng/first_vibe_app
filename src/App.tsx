@@ -22,7 +22,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InfoIcon from '@mui/icons-material/Info';
-import AddIcon from '@mui/icons-material/Add';
 import LayersIcon from '@mui/icons-material/Layers';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -198,19 +197,6 @@ function App() {
     [themeMode]
   );
 
-  const addWidget = () => {
-    addCommand({
-      type: 'ADD_WIDGET',
-      payload: {
-        widgetOptions: {
-          w: 3, h: 2,
-          content: 'New Widget',
-          id: `new-${Date.now()}`
-        }
-      }
-    });
-  };
-
   const addNestedWidget = () => {
     addCommand({
       type: 'ADD_WIDGET',
@@ -298,9 +284,6 @@ function App() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {isEditMode && (
                   <>
-                    <Button color="inherit" startIcon={<AddIcon />} onClick={addWidget}>
-                      Add Item
-                    </Button>
                     <Button color="inherit" startIcon={<LayersIcon />} onClick={addNestedWidget}>
                       Add Nested
                     </Button>

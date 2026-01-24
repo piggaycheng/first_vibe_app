@@ -54,7 +54,6 @@ export default function GridDashboard() {
         margin: 5,
         minRow: 1, 
         acceptWidgets: true,
-        dragIn: '.new-widget',
         float: true, 
         subGridOpts: {
           cellHeight: 80,
@@ -103,6 +102,15 @@ export default function GridDashboard() {
       };
 
       const handleAdded = (_event: Event, items: GridStackNode[]) => {
+         items.forEach(node => {
+           // Ensure unique ID for dropped items
+           if (!node.id) {
+             node.id = `widget-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+             if (node.el) {
+               node.el.setAttribute('gs-id', node.id);
+             }
+           }
+         });
          injectDeleteButtons(items);
          syncToStore();
       };
@@ -113,6 +121,47 @@ export default function GridDashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!isEditMode || !gridRef.current) return;
+    e.preventDefault();
+    
+    const dataStr = e.dataTransfer.getData('text/plain');
+    if (!dataStr) return;
+
+    try {
+      const data = JSON.parse(dataStr);
+      if (data.type) {
+        // Use GridStack API to find the grid cell from pixel coordinates
+        const pos = { 
+          left: e.clientX, 
+          top: e.clientY 
+        };
+        
+        // getCellFromPixel is very useful here
+        const cell = gridRef.current.getCellFromPixel(pos);
+        
+        const widgetOptions: GridStackWidget = {
+          x: cell.x,
+          y: cell.y,
+          w: 3, 
+          h: 2,
+          content: data.title || 'New Widget',
+          id: `widget-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+        };
+
+        gridRef.current.addWidget(widgetOptions);
+      }
+    } catch (err) {
+      console.error('Drop handling failed:', err);
+    }
+  };
 
   // Command Processor
   useEffect(() => {
@@ -265,6 +314,8 @@ export default function GridDashboard() {
     <div 
       className={`grid-stack grid-stack-root ${isEditMode ? 'edit-mode' : ''}`}
       onClick={handleBackgroundClick}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     ></div>
   );
 }

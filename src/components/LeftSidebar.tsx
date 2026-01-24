@@ -198,7 +198,9 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
                 variant="outlined"
                 className="new-widget"
                 draggable
-                onDragStart={(e) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                {...{ 'gs-w': 3, 'gs-h': 2 } as any}
+                onDragStart={(e: React.DragEvent) => {
                   e.dataTransfer.setData('text/plain', JSON.stringify({
                      type: widget.type,
                      title: widget.name
