@@ -115,9 +115,6 @@ export default function GridDashboard() {
       gridRef.current.on('change', syncToStore);
       gridRef.current.on('added', handleAdded);
       gridRef.current.on('removed', syncToStore);
-      gridRef.current.on('dropped', (_event, _previousWidget, newWidget) => {
-        console.log('GridDashboard: Item dropped!', newWidget);
-      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
