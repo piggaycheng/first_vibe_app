@@ -213,7 +213,7 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
                 className="new-widget grid-stack-item"
                 gs-w="3"
                 gs-h="2"
-                data-widget-type={widget.type}
+                gs-type={widget.type}
              >
                <div className="grid-stack-item-content">
                  <Card

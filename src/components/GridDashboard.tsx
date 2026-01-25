@@ -1,13 +1,16 @@
 import { useEffect, useRef } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { GridStack, type GridStackOptions, type GridStackNode, type GridStackWidget } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
 import { useGridStore } from '../store/useGridStore';
 import { useUIStore } from '../store/useUIStore';
+import WidgetRenderer from './WidgetRenderer';
 
 export default function GridDashboard() {
   const { gridItems, setGridItems, pendingCommand, clearCommand, selectedWidgetId, selectWidget } = useGridStore();
   const isEditMode = useUIStore((state) => state.isEditMode);
   const gridRef = useRef<GridStack | null>(null);
+  const rootsRef = useRef<Map<string, Root>>(new Map());
 
   // Edit Mode Effect
   useEffect(() => {
@@ -63,12 +66,71 @@ export default function GridDashboard() {
         }
       } as GridStackOptions, '.grid-stack-root');
 
+      // Helper to render widget content using React
+      const renderWidget = (node: GridStackNode) => {
+        if (!node.el || !node.id) return;
+
+        let contentEl = node.el.querySelector('.grid-stack-item-content');
+        if (!contentEl) return;
+
+        // If content is just text string, clear it to mount React component
+        // But check if we already have a root
+        if (!rootsRef.current.has(node.id)) {
+           // Clear existing HTML content if it's just raw text/HTML from load()
+           // Be careful not to wipe out if we are re-rendering? 
+           // actually load() puts content in innerHTML.
+           // We want to replace it with our React Component.
+           contentEl.innerHTML = '';
+           
+           // Create a container div for React
+           const container = document.createElement('div');
+           container.style.width = '100%';
+           container.style.height = '100%';
+           contentEl.appendChild(container);
+
+           const root = createRoot(container);
+           // We construct a GridStackWidget object to pass props
+           // Note: node is GridStackNode, we might need to extract persistent data
+           const type = (node as any).type || node.el?.getAttribute('gs-type') || 'text';
+           
+           // Persist type back to node if found in DOM but not in node
+           if (!(node as any).type && type) {
+               (node as any).type = type;
+           }
+
+           const widgetData = {
+             ...node,
+             type: type, 
+           } as GridStackWidget;           
+           root.render(<WidgetRenderer item={widgetData} />);
+           rootsRef.current.set(node.id, root);
+        }
+      };
+
+      // Helper for clean up
+      const cleanupWidget = (node: GridStackNode) => {
+         if (node.id && rootsRef.current.has(node.id)) {
+            const root = rootsRef.current.get(node.id);
+            rootsRef.current.delete(node.id);
+            setTimeout(() => root?.unmount(), 0);
+         }
+      };
+
       gridRef.current.load(gridItems);
+
+      // Render initial items
+      gridRef.current.engine.nodes.forEach(node => {
+        renderWidget(node);
+        if (node.subGrid && node.subGrid.engine.nodes) {
+           node.subGrid.engine.nodes.forEach(sub => renderWidget(sub));
+        }
+      });
 
       const injectDeleteButtons = (nodes: GridStackNode[]) => {
         nodes.forEach(node => {
           if (node.el) {
             let hasBtn = false;
+            // Check direct children or inside content? usually direct child of item
             for (let i = 0; i < node.el.children.length; i++) {
                 if (node.el.children[i].classList.contains('delete-widget-btn')) {
                     hasBtn = true;
@@ -107,15 +169,33 @@ export default function GridDashboard() {
                node.el.setAttribute('gs-id', node.id);
              }
            }
+           renderWidget(node);
          });
          injectDeleteButtons(items);
          syncToStore();
       };
 
+      const handleRemoved = (_event: Event, items: GridStackNode[]) => {
+        items.forEach(node => {
+           cleanupWidget(node);
+        });
+        syncToStore();
+      };
+
       gridRef.current.on('change', syncToStore);
       gridRef.current.on('added', handleAdded);
-      gridRef.current.on('removed', syncToStore);
+      gridRef.current.on('removed', handleRemoved);
     }
+    
+    // Cleanup on unmount of component
+    return () => {
+       // Optional: We could destroy grid here, but React StrictMode might cause issues 
+       // with double init. For now, we trust refs.
+       // But we should cleanup roots
+       // eslint-disable-next-line react-hooks/exhaustive-deps
+       rootsRef.current.forEach(root => setTimeout(() => root.unmount(), 0));
+       rootsRef.current.clear();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -158,8 +238,15 @@ export default function GridDashboard() {
             if (nodeData) {
               const gridNode = (widgetEl as unknown as { gridstackNode: GridStackNode }).gridstackNode;
               const sourceGrid = gridNode?.grid;
+              // Clean up React root before moving (it might be destroyed by DOM manipulation)
+              if (rootsRef.current.has(nodeId)) {
+                  const root = rootsRef.current.get(nodeId);
+                  rootsRef.current.delete(nodeId);
+                  setTimeout(() => root?.unmount(), 0);
+              }
+
               if (sourceGrid) {
-                sourceGrid.removeWidget(widgetEl as HTMLElement, true);
+                sourceGrid.removeWidget(widgetEl as HTMLElement, true); // true = remove DOM (we will re-add)
               }
               const newOptions = {
                 ...nodeData,
@@ -167,7 +254,10 @@ export default function GridDashboard() {
                 y: undefined,
                 id: String(nodeData.id)
               };
+              // Add widget creates new DOM, we will rely on 'added' event to re-mount React
               targetGrid.addWidget(newOptions);
+              
+              // Force sync
               setTimeout(() => {
                  if (gridRef.current) {
                    const layout = gridRef.current.save();
@@ -207,9 +297,40 @@ export default function GridDashboard() {
       }
       else if (type === 'LOAD_LAYOUT') {
         const { widgetOptions } = payload;
+        // Clean all roots
+        rootsRef.current.forEach(root => setTimeout(() => root.unmount(), 0));
+        rootsRef.current.clear();
+        
         gridRef.current.removeAll();
         gridRef.current.load(widgetOptions as GridStackWidget[]);
         setGridItems(widgetOptions as GridStackWidget[]);
+        
+        // Render new items
+        gridRef.current.engine.nodes.forEach(node => {
+           // We need a way to call renderWidget here, but it's inside useEffect closure.
+           // Since we are clearing everything, we can just let the loop handle it
+           // But renderWidget is defined in init useEffect... 
+           // We might need to refactor renderWidget out or trigger a re-scan.
+           // However, grid.load() might not trigger 'added' events for everything?
+           // Actually grid.load() DOES NOT trigger 'added' events for initial load.
+           // We need to manually render.
+           // Since renderWidget is inside the other effect, we can't call it here easily.
+           // Quick fix: define renderWidget outside or use a ref to it.
+           // Or just replicate logic here since this is a one-off command.
+           
+           if (!node.el || !node.id) return;
+           const contentEl = node.el.querySelector('.grid-stack-item-content');
+           if (!contentEl) return;
+           contentEl.innerHTML = '';
+           const container = document.createElement('div');
+           container.style.width = '100%';
+           container.style.height = '100%';
+           contentEl.appendChild(container);
+           const root = createRoot(container);
+           const widgetData = { ...node,              type: (node as any).type, };
+           root.render(<WidgetRenderer item={widgetData} />);
+           rootsRef.current.set(node.id, root);
+        });
       }
       clearCommand();
     }
