@@ -159,14 +159,10 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
 
   useEffect(() => {
     if (isEditMode && open && sidebarRef.current) {
-      // 確保元素已經渲染後再進行綁定
-      const timer = setTimeout(() => {
-        GridStack.setupDragIn('.new-widget', { 
-          appendTo: 'body', 
-          helper: 'clone'
-        });
-      }, 300);
-      return () => clearTimeout(timer);
+      GridStack.setupDragIn('.new-widget', { 
+        appendTo: 'body', 
+        helper: 'clone'
+      });
     }
   }, [isEditMode, open]);
 
