@@ -156,7 +156,7 @@ export default function GridDashboard() {
 
       const syncToStore = () => {
         if (gridRef.current) {
-          const layout = gridRef.current.save();
+          const layout = gridRef.current.save(false);
           setGridItems(layout as GridStackWidget[]);
         }
       };
@@ -222,7 +222,7 @@ export default function GridDashboard() {
           }
 
           if (targetGrid) {
-            const fullLayout = gridRef.current.save() as unknown as GridStackWidget[];
+            const fullLayout = gridRef.current.save(false) as unknown as GridStackWidget[];
             const findNode = (nodes: GridStackWidget[], id: string): GridStackWidget | null => {
               for (const node of nodes) {
                 if (String(node.id) === id) return node;
@@ -260,7 +260,7 @@ export default function GridDashboard() {
               // Force sync
               setTimeout(() => {
                  if (gridRef.current) {
-                   const layout = gridRef.current.save();
+                   const layout = gridRef.current.save(false);
                    setGridItems(layout as GridStackWidget[]);
                  }
               }, 0);
@@ -283,7 +283,7 @@ export default function GridDashboard() {
         gridRef.current.addWidget(widgetOptions as GridStackWidget);
       }
       else if (type === 'EXPORT_LAYOUT') {
-        const layout = gridRef.current.save();
+        const layout = gridRef.current.save(false);
         const json = JSON.stringify(layout, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const href = URL.createObjectURL(blob);
