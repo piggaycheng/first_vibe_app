@@ -68,8 +68,6 @@ export default function GridDashboard() {
       const injectDeleteButtons = (nodes: GridStackNode[]) => {
         nodes.forEach(node => {
           if (node.el) {
-            // Check if THIS node already has a delete button (direct child)
-            // querySelector finds descendants too, which is the bug for containers!
             let hasBtn = false;
             for (let i = 0; i < node.el.children.length; i++) {
                 if (node.el.children[i].classList.contains('delete-widget-btn')) {
@@ -103,7 +101,6 @@ export default function GridDashboard() {
 
       const handleAdded = (_event: Event, items: GridStackNode[]) => {
          items.forEach(node => {
-           // Ensure unique ID for dropped items
            if (!node.id) {
              node.id = `widget-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
              if (node.el) {
@@ -118,50 +115,12 @@ export default function GridDashboard() {
       gridRef.current.on('change', syncToStore);
       gridRef.current.on('added', handleAdded);
       gridRef.current.on('removed', syncToStore);
+      gridRef.current.on('dropped', (_event, _previousWidget, newWidget) => {
+        console.log('GridDashboard: Item dropped!', newWidget);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleDragOver = (e: React.DragEvent) => {
-    if (!isEditMode) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    if (!isEditMode || !gridRef.current) return;
-    e.preventDefault();
-    
-    const dataStr = e.dataTransfer.getData('text/plain');
-    if (!dataStr) return;
-
-    try {
-      const data = JSON.parse(dataStr);
-      if (data.type) {
-        // Use GridStack API to find the grid cell from pixel coordinates
-        const pos = { 
-          left: e.clientX, 
-          top: e.clientY 
-        };
-        
-        // getCellFromPixel is very useful here
-        const cell = gridRef.current.getCellFromPixel(pos);
-        
-        const widgetOptions: GridStackWidget = {
-          x: cell.x,
-          y: cell.y,
-          w: 3, 
-          h: 2,
-          content: data.title || 'New Widget',
-          id: `widget-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-        };
-
-        gridRef.current.addWidget(widgetOptions);
-      }
-    } catch (err) {
-      console.error('Drop handling failed:', err);
-    }
-  };
 
   // Command Processor
   useEffect(() => {
@@ -186,11 +145,7 @@ export default function GridDashboard() {
           }
 
           if (targetGrid) {
-            // 1. Get the latest layout from the grid to ensure we have the full data structure (including children)
-            //    We need to save() first because the internal node objects might not be fully synced with DOM changes if we just read properties.
             const fullLayout = gridRef.current.save() as unknown as GridStackWidget[];
-            
-            // Helper to find node in the layout tree
             const findNode = (nodes: GridStackWidget[], id: string): GridStackWidget | null => {
               for (const node of nodes) {
                 if (String(node.id) === id) return node;
@@ -203,41 +158,25 @@ export default function GridDashboard() {
             };
 
             const nodeData = findNode(fullLayout, nodeId);
-
             if (nodeData) {
-              // 2. Remove the old widget completely (including DOM)
-              //    This prevents duplication and ensures a clean state.
               const gridNode = (widgetEl as unknown as { gridstackNode: GridStackNode }).gridstackNode;
               const sourceGrid = gridNode?.grid;
               if (sourceGrid) {
-                sourceGrid.removeWidget(widgetEl as HTMLElement, true); // true = remove DOM
+                sourceGrid.removeWidget(widgetEl as HTMLElement, true);
               }
-
-              // 3. Prepare new widget options
-              //    We clean up x/y to let auto-positioning handle placement in the new parent
-              //    We MUST preserve subGridOpts (with children) so GridStack recreates the subtree.
               const newOptions = {
                 ...nodeData,
-                x: undefined, // Let it auto-position
+                x: undefined,
                 y: undefined,
-                // Ensure id is a string
                 id: String(nodeData.id)
               };
-
-              console.log('Moving (Recreating) widget:', newOptions);
-
-              // 4. Add the widget to the new grid
               targetGrid.addWidget(newOptions);
-
-              // 5. Sync store
               setTimeout(() => {
                  if (gridRef.current) {
                    const layout = gridRef.current.save();
                    setGridItems(layout as GridStackWidget[]);
                  }
               }, 0);
-            } else {
-              console.error('Could not find node data for move:', nodeId);
             }
           }
         }
@@ -275,11 +214,9 @@ export default function GridDashboard() {
         gridRef.current.load(widgetOptions as GridStackWidget[]);
         setGridItems(widgetOptions as GridStackWidget[]);
       }
-
       clearCommand();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingCommand, clearCommand]);
+  }, [pendingCommand, clearCommand, setGridItems]);
 
   // Global Click Listener for Delete
   useEffect(() => {
@@ -303,7 +240,6 @@ export default function GridDashboard() {
   }, []);
 
   const handleBackgroundClick = (e: React.MouseEvent) => {
-    // If clicking on the root container or empty space, and NOT on a widget
     const target = e.target as HTMLElement;
     if (!target.closest('.grid-stack-item')) {
       selectWidget(null);
@@ -314,8 +250,6 @@ export default function GridDashboard() {
     <div 
       className={`grid-stack grid-stack-root ${isEditMode ? 'edit-mode' : ''}`}
       onClick={handleBackgroundClick}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
     ></div>
   );
 }

@@ -32,8 +32,9 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import ImageIcon from '@mui/icons-material/Image';
 
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { GridStack } from 'gridstack';
 
 import { useUIStore } from '../store/useUIStore';
 import { db, type Page } from '../db';
@@ -154,6 +155,21 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
     toggleTheme
   } = useUIStore();
 
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isEditMode && open && sidebarRef.current) {
+      // 確保元素已經渲染後再進行綁定
+      const timer = setTimeout(() => {
+        GridStack.setupDragIn('.new-widget', { 
+          appendTo: 'body', 
+          helper: 'clone'
+        });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isEditMode, open]);
+
   // Load Pages from DB
   const pages = useLiveQuery(async () => {
     const allPages = await db.pages.toArray();
@@ -188,38 +204,36 @@ export default function LeftSidebar({ width }: LeftSidebarProps) {
       <Divider />
       
       {isEditMode ? (
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', flexGrow: 1 }}>
+        <Box 
+          ref={sidebarRef}
+          sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', flexGrow: 1 }}
+        >
            <Typography variant="subtitle2" color="text.secondary">
              Components
            </Typography>
            {availableWidgets.map((widget) => (
-             <Card
+             <div
                 key={widget.type}
-                variant="outlined"
-                className="new-widget"
-                draggable
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                {...{ 'gs-w': 3, 'gs-h': 2 } as any}
-                onDragStart={(e: React.DragEvent) => {
-                  e.dataTransfer.setData('text/plain', JSON.stringify({
-                     type: widget.type,
-                     title: widget.name
-                  }));
-                  // GridStack uses these attributes if set on the dragged element,
-                  // but for "new-widget" class dragIn, it often reads attributes from the element itself
-                  // or uses the helper.
-                  // Setting dataTransfer is good practice for custom handlers.
-                }}
-                sx={{
-                  cursor: 'grab',
-                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
-                }}
+                className="new-widget grid-stack-item"
+                gs-w="3"
+                gs-h="2"
              >
-               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 }, px: 2 }}>
-                  <widget.icon color="action" />
-                  <Typography variant="body2" fontWeight="medium">{widget.name}</Typography>
-               </CardContent>
-             </Card>
+               <div className="grid-stack-item-content">
+                 <Card
+                    variant="outlined"
+                    sx={{
+                      cursor: 'grab',
+                      height: '100%',
+                      '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
+                    }}
+                 >
+                   <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 }, px: 2 }}>
+                      <widget.icon color="action" />
+                      <Typography variant="body2" fontWeight="medium">{widget.name}</Typography>
+                   </CardContent>
+                 </Card>
+               </div>
+             </div>
            ))}
         </Box>
       ) : (
