@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useGridStore } from '../store/useGridStore';
 import { db, type Layout } from '../db';
 import { findWidgetById } from '../utils/gridUtils';
@@ -8,22 +9,42 @@ export function useLayoutPersistence() {
   const selectedWidgetId = useGridStore((state) => state.selectedWidgetId);
   const addCommand = useGridStore((state) => state.addCommand);
   const setLastLoadedLayoutId = useGridStore((state) => state.setLastLoadedLayoutId);
+  const location = useLocation();
 
   const saveLayout = useCallback(async (name?: string, thumbnail?: Blob) => {
     try {
       const timestamp = new Date();
-      await db.layouts.add({
-        id: crypto.randomUUID(),
-        name: name || `Layout ${timestamp.toLocaleString()}`,
-        items: gridItems,
-        thumbnail,
-        updatedAt: timestamp
+      const newLayoutId = crypto.randomUUID();
+      const currentPath = location.pathname;
+
+      await db.transaction('rw', db.layouts, db.pages, async () => {
+        // 1. Create the new layout
+        await db.layouts.add({
+          id: newLayoutId,
+          name: name || `Layout ${timestamp.toLocaleString()}`,
+          items: gridItems,
+          thumbnail,
+          updatedAt: timestamp
+        });
+
+        // 2. Find and update the current page to point to this new layout
+        const page = await db.pages.where('path').equals(currentPath).first();
+        if (page) {
+           await db.pages.update(page.id, { gridId: newLayoutId });
+           console.log(`Updated page '${page.name}' to use layout ${newLayoutId}`);
+        } else {
+           console.log(`No page found for path ${currentPath}, layout saved but not linked.`);
+        }
       });
+      
+      // Update the store to reflect we are now on this new layout
+      setLastLoadedLayoutId(newLayoutId);
+
       console.log('Layout saved successfully');
     } catch (error) {
       console.error('Failed to save layout:', error);
     }
-  }, [gridItems]);
+  }, [gridItems, location.pathname, setLastLoadedLayoutId]);
 
   const saveSelectedLayout = useCallback(async (name?: string, thumbnail?: Blob) => {
     if (!selectedWidgetId) {
