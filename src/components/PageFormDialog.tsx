@@ -114,15 +114,18 @@ export default function PageFormDialog({
   
   const iconPopoverOpen = Boolean(iconAnchorEl);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterText, setFilterText] = useState('');
 
   // Sort layouts by updatedAt
   const sortedLayouts = useMemo(() => {
-    return [...layouts].sort((a, b) => {
-      const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-      const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
-  }, [layouts, sortOrder]);
+    return layouts
+      .filter(l => l.name.toLowerCase().includes(filterText.toLowerCase()))
+      .sort((a, b) => {
+        const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      });
+  }, [layouts, sortOrder, filterText]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -254,7 +257,15 @@ export default function PageFormDialog({
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <TextField
+                      label="Filter Layouts"
+                      variant="outlined"
+                      size="small"
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
+                      sx={{ width: '200px' }}
+                    />
                     <ToggleButtonGroup
                       value={sortOrder}
                       exclusive
