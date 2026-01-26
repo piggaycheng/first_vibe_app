@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { GridStack, type GridStackOptions, type GridStackNode, type GridStackWidget } from 'gridstack';
 import 'gridstack/dist/gridstack.min.css';
@@ -6,11 +6,134 @@ import { useGridStore } from '../store/useGridStore';
 import { useUIStore } from '../store/useUIStore';
 import WidgetRenderer from './WidgetRenderer';
 
+type ExtendedGridNode = GridStackNode & { type?: string };
+
 export default function GridDashboard() {
   const { gridItems, setGridItems, pendingCommand, clearCommand, selectedWidgetId, selectWidget } = useGridStore();
   const isEditMode = useUIStore((state) => state.isEditMode);
   const gridRef = useRef<GridStack | null>(null);
   const rootsRef = useRef<Map<string, Root>>(new Map());
+
+  // Helper to render widget content using React
+  const renderWidget = useCallback((node: GridStackNode) => {
+    if (!node.el || !node.id) return;
+
+    const contentEl = node.el.querySelector('.grid-stack-item-content');
+    if (!contentEl) return;
+
+    // Skip rendering for nested grid containers to avoid wiping the sub-grid
+    if (node.subGrid || node.subGridOpts) return;
+
+    // If content is just text string, clear it to mount React component
+    if (!rootsRef.current.has(node.id)) {
+        contentEl.innerHTML = '';
+        
+        // Create a container div for React
+        const container = document.createElement('div');
+        container.style.width = '100%';
+        container.style.height = '100%';
+        contentEl.appendChild(container);
+
+        const root = createRoot(container);
+        // We construct a GridStackWidget object to pass props
+        const extendedNode = node as ExtendedGridNode;
+        const type = extendedNode.type || node.el?.getAttribute('gs-type') || 'text';
+        
+        // Persist type back to node if found in DOM but not in node
+        if (!extendedNode.type && type) {
+            extendedNode.type = type;
+        }
+        // Also persist to DOM attribute for robustness
+        node.el?.setAttribute('gs-type', type);
+
+        const widgetData = {
+            ...node,
+            type: type, 
+        } as GridStackWidget;           
+        root.render(<WidgetRenderer item={widgetData} />);
+        rootsRef.current.set(node.id, root);
+    }
+  }, []); // rootsRef is stable
+
+  // Recursive helper for rendering
+  const processNodeRender = useCallback((node: GridStackNode) => {
+    renderWidget(node);
+    if (node.subGrid && node.subGrid.engine.nodes) {
+        node.subGrid.engine.nodes.forEach(processNodeRender);
+    }
+  }, [renderWidget]);
+
+  // Helper for clean up
+  const cleanupWidget = useCallback((node: GridStackNode) => {
+        if (node.id && rootsRef.current.has(node.id)) {
+        const root = rootsRef.current.get(node.id);
+        rootsRef.current.delete(node.id);
+        setTimeout(() => root?.unmount(), 0);
+        }
+  }, []);
+
+  const injectDeleteButtons = useCallback((nodes: GridStackNode[]) => {
+    nodes.forEach(node => {
+        if (node.el) {
+        let hasBtn = false;
+        for (let i = 0; i < node.el.children.length; i++) {
+            if (node.el.children[i].classList.contains('delete-widget-btn')) {
+                hasBtn = true;
+                break;
+            }
+        }
+
+        if (!hasBtn) {
+            const btn = document.createElement('button');
+            btn.className = 'delete-widget-btn';
+            btn.innerText = '✕';
+            btn.title = 'Remove';
+            node.el.appendChild(btn);
+        }
+        }
+        if (node.subGrid && node.subGrid.engine.nodes) {
+            injectDeleteButtons(node.subGrid.engine.nodes);
+        }
+    });
+  }, []);
+
+  const syncToStore = useCallback(() => {
+    if (gridRef.current) {
+        // Capture types from live nodes to ensure persistence
+        const typeMap = new Map<string, string>();
+        const collectTypes = (nodes: GridStackNode[]) => {
+            nodes.forEach(n => {
+            const extended = n as ExtendedGridNode;
+            if (extended.id && extended.type) {
+                typeMap.set(extended.id, extended.type);
+            }
+            if (n.subGrid && n.subGrid.engine.nodes) {
+                collectTypes(n.subGrid.engine.nodes);
+            }
+            });
+        };
+        collectTypes(gridRef.current.engine.nodes);
+
+        const layout = gridRef.current.save(false);
+        
+        // Patch layout with collected types
+        const patchLayout = (items: GridStackWidget[]) => {
+            items.forEach(item => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const extendedItem = item as any;
+            if (item.id && typeMap.has(item.id)) {
+                extendedItem.type = typeMap.get(item.id);
+            }
+            if (item.subGridOpts?.children) {
+                patchLayout(item.subGridOpts.children);
+            }
+            });
+        };
+        patchLayout(layout as GridStackWidget[]);
+
+        setGridItems(layout as GridStackWidget[]);
+    }
+  }, [setGridItems]);
 
   // Edit Mode Effect
   useEffect(() => {
@@ -66,106 +189,14 @@ export default function GridDashboard() {
         }
       } as GridStackOptions, '.grid-stack-root');
 
-      // Helper to render widget content using React
-      const renderWidget = (node: GridStackNode) => {
-        if (!node.el || !node.id) return;
-
-        const contentEl = node.el.querySelector('.grid-stack-item-content');
-        if (!contentEl) return;
-
-        // Skip rendering for nested grid containers to avoid wiping the sub-grid
-        if (node.subGrid || node.subGridOpts) return;
-
-        // If content is just text string, clear it to mount React component
-        // But check if we already have a root
-        if (!rootsRef.current.has(node.id)) {
-           // Clear existing HTML content if it's just raw text/HTML from load()
-           // Be careful not to wipe out if we are re-rendering? 
-           // actually load() puts content in innerHTML.
-           // We want to replace it with our React Component.
-           contentEl.innerHTML = '';
-           
-           // Create a container div for React
-           const container = document.createElement('div');
-           container.style.width = '100%';
-           container.style.height = '100%';
-           contentEl.appendChild(container);
-
-           const root = createRoot(container);
-           // We construct a GridStackWidget object to pass props
-           // Note: node is GridStackNode, we might need to extract persistent data
-           const type = (node as any).type || node.el?.getAttribute('gs-type') || 'text';
-           
-           // Persist type back to node if found in DOM but not in node
-           if (!(node as any).type && type) {
-               (node as any).type = type;
-           }
-
-           const widgetData = {
-             ...node,
-             type: type, 
-           } as GridStackWidget;           
-           root.render(<WidgetRenderer item={widgetData} />);
-           rootsRef.current.set(node.id, root);
-        }
-      };
-
-      // Helper for clean up
-      const cleanupWidget = (node: GridStackNode) => {
-         if (node.id && rootsRef.current.has(node.id)) {
-            const root = rootsRef.current.get(node.id);
-            rootsRef.current.delete(node.id);
-            setTimeout(() => root?.unmount(), 0);
-         }
-      };
-
       gridRef.current.load(gridItems);
 
-      // Render initial items
-      gridRef.current.engine.nodes.forEach(node => {
-        renderWidget(node);
-        if (node.subGrid && node.subGrid.engine.nodes) {
-           node.subGrid.engine.nodes.forEach(sub => renderWidget(sub));
-        }
-      });
-
-      const injectDeleteButtons = (nodes: GridStackNode[]) => {
-        nodes.forEach(node => {
-          if (node.el) {
-            let hasBtn = false;
-            // Check direct children or inside content? usually direct child of item
-            for (let i = 0; i < node.el.children.length; i++) {
-                if (node.el.children[i].classList.contains('delete-widget-btn')) {
-                    hasBtn = true;
-                    break;
-                }
-            }
-
-            if (!hasBtn) {
-                const btn = document.createElement('button');
-                btn.className = 'delete-widget-btn';
-                btn.innerText = '✕';
-                btn.title = 'Remove';
-                node.el.appendChild(btn);
-            }
-          }
-          if (node.subGrid && node.subGrid.engine.nodes) {
-             injectDeleteButtons(node.subGrid.engine.nodes);
-          }
-        });
-      };
-
+      // Render initial items recursively
+      gridRef.current.engine.nodes.forEach(processNodeRender);
       injectDeleteButtons(gridRef.current.engine.nodes);
 
-      const syncToStore = () => {
-        if (gridRef.current) {
-          const layout = gridRef.current.save(false);
-          setGridItems(layout as GridStackWidget[]);
-        }
-      };
-
       const handleAdded = (_event: Event, items: GridStackNode[]) => {
-         const processNode = (node: GridStackNode) => {
+         const processAddedNode = (node: GridStackNode) => {
            if (!node.id) {
              node.id = `widget-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
              if (node.el) {
@@ -175,11 +206,11 @@ export default function GridDashboard() {
            renderWidget(node);
 
            if (node.subGrid && node.subGrid.engine.nodes) {
-             node.subGrid.engine.nodes.forEach(processNode);
+             node.subGrid.engine.nodes.forEach(processAddedNode);
            }
          };
 
-         items.forEach(processNode);
+         items.forEach(processAddedNode);
          injectDeleteButtons(items);
          syncToStore();
       };
@@ -198,10 +229,6 @@ export default function GridDashboard() {
     
     // Cleanup on unmount of component
     return () => {
-       // Optional: We could destroy grid here, but React StrictMode might cause issues 
-       // with double init. For now, we trust refs.
-       // But we should cleanup roots
-       // eslint-disable-next-line react-hooks/exhaustive-deps
        rootsRef.current.forEach(root => setTimeout(() => root.unmount(), 0));
        rootsRef.current.clear();
     };
@@ -268,10 +295,7 @@ export default function GridDashboard() {
               
               // Force sync
               setTimeout(() => {
-                 if (gridRef.current) {
-                   const layout = gridRef.current.save(false);
-                   setGridItems(layout as GridStackWidget[]);
-                 }
+                 syncToStore();
               }, 0);
             }
           }
@@ -314,36 +338,13 @@ export default function GridDashboard() {
         gridRef.current.load(widgetOptions as GridStackWidget[]);
         setGridItems(widgetOptions as GridStackWidget[]);
         
-        // Render new items
-        gridRef.current.engine.nodes.forEach(node => {
-           // We need a way to call renderWidget here, but it's inside useEffect closure.
-           // Since we are clearing everything, we can just let the loop handle it
-           // But renderWidget is defined in init useEffect... 
-           // We might need to refactor renderWidget out or trigger a re-scan.
-           // However, grid.load() might not trigger 'added' events for everything?
-           // Actually grid.load() DOES NOT trigger 'added' events for initial load.
-           // We need to manually render.
-           // Since renderWidget is inside the other effect, we can't call it here easily.
-           // Quick fix: define renderWidget outside or use a ref to it.
-           // Or just replicate logic here since this is a one-off command.
-           
-           if (!node.el || !node.id) return;
-           const contentEl = node.el.querySelector('.grid-stack-item-content');
-           if (!contentEl) return;
-           contentEl.innerHTML = '';
-           const container = document.createElement('div');
-           container.style.width = '100%';
-           container.style.height = '100%';
-           contentEl.appendChild(container);
-           const root = createRoot(container);
-           const widgetData = { ...node,              type: (node as any).type, };
-           root.render(<WidgetRenderer item={widgetData} />);
-           rootsRef.current.set(node.id, root);
-        });
+        // Render new items recursively
+        gridRef.current.engine.nodes.forEach(processNodeRender);
+        injectDeleteButtons(gridRef.current.engine.nodes);
       }
       clearCommand();
     }
-  }, [pendingCommand, clearCommand, setGridItems]);
+  }, [pendingCommand, clearCommand, setGridItems, processNodeRender, injectDeleteButtons, syncToStore, cleanupWidget]);
 
   // Global Click Listener for Delete
   useEffect(() => {
