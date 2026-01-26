@@ -70,8 +70,11 @@ export default function GridDashboard() {
       const renderWidget = (node: GridStackNode) => {
         if (!node.el || !node.id) return;
 
-        let contentEl = node.el.querySelector('.grid-stack-item-content');
+        const contentEl = node.el.querySelector('.grid-stack-item-content');
         if (!contentEl) return;
+
+        // Skip rendering for nested grid containers to avoid wiping the sub-grid
+        if (node.subGrid || node.subGridOpts) return;
 
         // If content is just text string, clear it to mount React component
         // But check if we already have a root
@@ -162,7 +165,7 @@ export default function GridDashboard() {
       };
 
       const handleAdded = (_event: Event, items: GridStackNode[]) => {
-         items.forEach(node => {
+         const processNode = (node: GridStackNode) => {
            if (!node.id) {
              node.id = `widget-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
              if (node.el) {
@@ -170,7 +173,13 @@ export default function GridDashboard() {
              }
            }
            renderWidget(node);
-         });
+
+           if (node.subGrid && node.subGrid.engine.nodes) {
+             node.subGrid.engine.nodes.forEach(processNode);
+           }
+         };
+
+         items.forEach(processNode);
          injectDeleteButtons(items);
          syncToStore();
       };
