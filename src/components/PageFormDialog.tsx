@@ -113,6 +113,16 @@ export default function PageFormDialog({
   const CurrentIcon = getIconComponent(data.icon) || (data.type === 'folder' ? DashboardIcon : DashboardIcon); // Fallback just for display button if empty
   
   const iconPopoverOpen = Boolean(iconAnchorEl);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Sort layouts by updatedAt
+  const sortedLayouts = useMemo(() => {
+    return [...layouts].sort((a, b) => {
+      const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+  }, [layouts, sortOrder]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -244,6 +254,18 @@ export default function PageFormDialog({
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                    <ToggleButtonGroup
+                      value={sortOrder}
+                      exclusive
+                      onChange={(_, newOrder) => newOrder && setSortOrder(newOrder)}
+                      size="small"
+                      aria-label="sort order"
+                    >
+                      <ToggleButton value="desc">Newest</ToggleButton>
+                      <ToggleButton value="asc">Oldest</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
                   <Box 
                     sx={{ 
                       display: 'grid', 
@@ -261,7 +283,7 @@ export default function PageFormDialog({
                       name="Empty / Default"
                     />
 
-                    {layouts.map((layout) => (
+                    {sortedLayouts.map((layout) => (
                       <LayoutCard
                         key={layout.id}
                         selected={data.gridId === layout.id}
