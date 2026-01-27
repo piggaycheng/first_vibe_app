@@ -29,6 +29,7 @@ import DesignServicesIcon from '@mui/icons-material/DesignServices';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import WebIcon from '@mui/icons-material/Web';
 import SaveIcon from '@mui/icons-material/Save';
+import ViewInArIcon from '@mui/icons-material/ViewInAr';
 
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useMemo, useState } from 'react';
@@ -42,6 +43,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import GridManagementPage from './pages/GridManagementPage';
 import PageManagementPage from './pages/PageManagementPage';
+import ThreeDEditorPage from './pages/ThreeDEditorPage';
 import SaveLayoutDialog from './components/SaveLayoutDialog';
 import { useUIStore } from './store/useUIStore';
 import { useGridStore } from './store/useGridStore';
@@ -131,7 +133,7 @@ function App() {
 
   const activePageName = useLiveQuery(
     async () => {
-      if (location.pathname === '/' || ['/settings', '/analytics', '/grid-management', '/page-management'].includes(location.pathname)) return null;
+      if (location.pathname === '/' || ['/settings', '/analytics', '/grid-management', '/page-management', '/3d-editor'].includes(location.pathname)) return null;
       const page = await db.pages.where('path').equals(location.pathname).first();
       return page?.name;
     },
@@ -174,7 +176,7 @@ function App() {
     setAnchorElUser(null);
   };
 
-  const isDashboard = !['/', '/settings', '/analytics', '/grid-management', '/page-management'].some(path => 
+  const isDashboard = !['/', '/settings', '/analytics', '/grid-management', '/page-management', '/3d-editor'].some(path => 
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   );
 
@@ -264,6 +266,7 @@ function App() {
                  else if (location.pathname === '/analytics') name = 'Analytics';
                  else if (location.pathname === '/grid-management') name = 'Grid Management';
                  else if (location.pathname === '/page-management') name = 'Page Management';
+                 else if (location.pathname === '/3d-editor') name = '3D Editor';
                  else if (location.pathname !== '/') {
                    // Try to find dynamic page name. 
                    // Note: activePage might be undefined initially due to async useLiveQuery.
@@ -349,6 +352,12 @@ function App() {
                 </ListItemIcon>
                 <Typography textAlign="center">Page Management</Typography>
               </MenuItem>
+              <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/3d-editor'); }}>
+                <ListItemIcon>
+                  <ViewInArIcon fontSize="small" />
+                </ListItemIcon>
+                <Typography textAlign="center">3D Editor</Typography>
+              </MenuItem>
               <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/grid-management'); }}>
                 <ListItemIcon>
                   <DashboardIcon fontSize="small" />
@@ -377,6 +386,7 @@ function App() {
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/grid-management" element={<GridManagementPage />} />
               <Route path="/page-management" element={<PageManagementPage />} />
+              <Route path="/3d-editor" element={<ThreeDEditorPage />} />
               <Route path="*" element={<DashboardPage />} />
             </Routes>
           </Box>
