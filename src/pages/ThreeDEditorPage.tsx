@@ -35,7 +35,13 @@ export default function ThreeDEditorPage() {
   const theme = useTheme();
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ 
+      // 100vh - (AppBar ~64px + Main Padding 48px + Buffer)
+      height: 'calc(100vh - 120px)', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: 2 
+    }}>
       <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h5" component="h1">
           3D Editor
@@ -48,7 +54,7 @@ export default function ThreeDEditorPage() {
       <Paper 
         elevation={3} 
         sx={{ 
-          height: '70vh', // 固定高度防止 Canvas 無限擴張
+          flexGrow: 1, // 自動填滿剩餘高度
           overflow: 'hidden', 
           borderRadius: 2,
           bgcolor: theme.palette.mode === 'dark' ? '#000' : '#f0f0f0' 

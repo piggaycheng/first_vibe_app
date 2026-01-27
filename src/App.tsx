@@ -141,7 +141,7 @@ function App() {
   );
 
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
-  
+
   // Save Dialog State
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveType, setSaveType] = useState<'all' | 'selected'>('all');
@@ -176,7 +176,7 @@ function App() {
     setAnchorElUser(null);
   };
 
-  const isDashboard = !['/', '/settings', '/analytics', '/grid-management', '/page-management', '/3d-editor'].some(path => 
+  const isDashboard = !['/', '/settings', '/analytics', '/grid-management', '/page-management', '/3d-editor'].some(path =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
   );
 
@@ -246,38 +246,38 @@ function App() {
             >
               <MenuIcon />
             </IconButton>
-            <Breadcrumbs 
-              separator={<NavigateNextIcon fontSize="small" />} 
+            <Breadcrumbs
+              separator={<NavigateNextIcon fontSize="small" />}
               aria-label="breadcrumb"
               sx={{ flexGrow: 1 }}
             >
-              <MuiLink 
-                underline="hover" 
-                color="inherit" 
+              <MuiLink
+                underline="hover"
+                color="inherit"
                 onClick={() => navigate('/')}
                 sx={{ cursor: 'pointer' }}
               >
                 Dashboard
               </MuiLink>
               {(() => {
-                 // Determine current page name
-                 let name = '';
-                 if (location.pathname === '/settings') name = 'Settings';
-                 else if (location.pathname === '/analytics') name = 'Analytics';
-                 else if (location.pathname === '/grid-management') name = 'Grid Management';
-                 else if (location.pathname === '/page-management') name = 'Page Management';
-                 else if (location.pathname === '/3d-editor') name = '3D Editor';
-                 else if (location.pathname !== '/') {
-                   // Try to find dynamic page name. 
-                   // Note: activePage might be undefined initially due to async useLiveQuery.
-                   // We need to define activePage hook in the component body first.
-                   // Since we can't easily inject hooks inside render, we'll use the one we add below.
-                   return activePageName ? (
-                      <Typography color="text.primary">{activePageName}</Typography>
-                   ) : null;
-                 }
-                 
-                 return name ? <Typography color="text.primary">{name}</Typography> : null;
+                // Determine current page name
+                let name = '';
+                if (location.pathname === '/settings') name = 'Settings';
+                else if (location.pathname === '/analytics') name = 'Analytics';
+                else if (location.pathname === '/grid-management') name = 'Grid Management';
+                else if (location.pathname === '/page-management') name = 'Page Management';
+                else if (location.pathname === '/3d-editor') name = '3D Editor';
+                else if (location.pathname !== '/') {
+                  // Try to find dynamic page name. 
+                  // Note: activePage might be undefined initially due to async useLiveQuery.
+                  // We need to define activePage hook in the component body first.
+                  // Since we can't easily inject hooks inside render, we'll use the one we add below.
+                  return activePageName ? (
+                    <Typography color="text.primary">{activePageName}</Typography>
+                  ) : null;
+                }
+
+                return name ? <Typography color="text.primary">{name}</Typography> : null;
               })()}
             </Breadcrumbs>
 
@@ -378,7 +378,7 @@ function App() {
 
         <Main open={open} rightOpen={rightOpen}>
           <DrawerHeader />
-          <Box sx={{ width: '100%', height: '100%', minHeight: '80vh' }}>
+          <Box>
             <Routes>
               <Route path="/" element={<WelcomePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
